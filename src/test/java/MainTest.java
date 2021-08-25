@@ -6,18 +6,23 @@ import com.exactpro.th2.common.schema.message.MessageRouterContext;
 import com.exactpro.th2.common.schema.message.SubscriberMonitor;
 import com.exactpro.th2.common.schema.message.configuration.MessageRouterConfiguration;
 import com.exactpro.th2.common.schema.message.impl.rabbitmq.connection.ConnectionManager;
+import com.exactpro.th2.fix.client.Main;
+import com.exactpro.th2.fix.client.fixBean.FixBean;
+import com.exactpro.th2.fix.client.util.MessageUtil;
 import com.google.protobuf.ByteString;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
-import quickfix.*;
-import quickfix.field.*;
-import quickfix.fix42.NewOrderSingle;
+import quickfix.ConfigError;
+import quickfix.Message;
+import quickfix.field.BeginString;
+import quickfix.field.MsgType;
+import quickfix.field.SenderCompID;
+import quickfix.field.TargetCompID;
 
-import javax.management.JMException;
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedDeque;
@@ -25,38 +30,66 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 
-public class MainTest {
+public class MainTest extends Main{
+
+
+    @Test
+    public void getSessionTest(){
+        String message = "8=FIX.4.2\u00019=105\u000135=8\u000134=1266\u000143=Y\u000149=server\u000152=20210824-08:00:11.858\u000156=client\u0001122=20210823-10:36:47.517\u000120=0\u000139=0\u0001150=0\u000110=112\u0001";
+        Assert.assertEquals("FIX.4.2:server->client", MessageUtil.getSessionID(message).toString());
+    }
+
 
     @Test
     public void runTest() throws Exception {
 
         Main.Settings settings = new Main.Settings();
 
+        FixBean fixBean = new FixBean();
+        FixBean fixBean1 = new FixBean();
+
+        fixBean1.setSenderCompID(new SenderCompID("client2"));
+        fixBean1.setSessionAlias("FIX.4.2:client2->server");
+        fixBean1.setSocketConnectPort(9878);
+
+        List<FixBean> fixBeans = new ArrayList<>();
+        fixBeans.add(fixBean);
+        fixBeans.add(fixBean1);
+        settings.setFixBeanList(fixBeans);
+
         MyMessageRouter messageRouter = new MyMessageRouter();
 
         MessageRouter<EventBatch> eventRouter = new MyEventRouter();
         GrpcRouter grpcRouter = Mockito.mock(GrpcRouter.class);
-        ConcurrentLinkedDeque<Main.Resources> resources = new ConcurrentLinkedDeque<>();
+        ConcurrentLinkedDeque<Resources> resources = new ConcurrentLinkedDeque<>();
 
         Thread thread = new Thread(() -> {
             try {
                 Main.run(settings, messageRouter, eventRouter, grpcRouter, resources);
-            } catch (ConfigError | FieldConvertError | JMException configError) {
+            } catch (ConfigError configError) {
                 configError.printStackTrace();
             }
         });
         thread.start();
 
-        NewOrderSingle fixMessage = new NewOrderSingle(
-                new ClOrdID("1"),
-                new HandlInst('1'),
-                new Symbol("ClientXXXMMMMMMM"),
-                new Side('1'),
-                new TransactTime(LocalDateTime.now()),
-                new OrdType('1'));
-        // market order fields
-        fixMessage.set(new OrderQty(1));
-        fixMessage.set(new Price(10.0));
+        Message fixMessage = new Message();
+        Message.Header header = fixMessage.getHeader();
+        header.setField(new BeginString("FIX.4.2"));
+        header.setField(new MsgType("D"));
+        header.setField(new SenderCompID("client"));
+        header.setField(new TargetCompID("server"));
+
+
+//        NewOrderSingle fixMessage = new NewOrderSingle(
+//                new ClOrdID("1"),
+//                new HandlInst('1'),
+//                new Symbol("ClientXXXMMMMMMM"),
+//                new Side('1'),
+//                new TransactTime(LocalDateTime.now()),
+//                new OrdType('1'));
+//        // market order fields
+//        fixMessage.set(new OrderQty(1));
+//        fixMessage.set(new Price(10.0));
 
         MessageGroupBatch messageGroupBatch = MessageGroupBatch.newBuilder()
                 .addGroups(MessageGroup.newBuilder()
@@ -71,10 +104,7 @@ public class MainTest {
                         .build())
                 .build();
 
-        Thread.sleep(10000);
-        System.out.println("ten second left");
-
-        System.out.println(messageRouter.listOfListeners.size() + " quantity of listeners");
+        Thread.sleep(14000);
 
         messageRouter.sendToSubscriber("xmm", messageGroupBatch);
 
@@ -99,7 +129,7 @@ public class MainTest {
 
     public static class MyMessageRouter implements MessageRouter<MessageGroupBatch> {
 
-        List<MessageListener<MessageGroupBatch>> listOfListeners = new ArrayList<>();
+        List<MessageListener> listOfListeners = new ArrayList<>();
         List<MessageGroupBatch> listOfMessages = new ArrayList<>();
 
         public void sendToSubscriber(String tag, MessageGroupBatch message) throws Exception {
@@ -123,12 +153,12 @@ public class MainTest {
         }
 
         @Override
-        public void send(MessageGroupBatch message, String... queueAttr) throws IOException {
+        public void send(MessageGroupBatch message, String... queueAttr){
             listOfMessages.add(message);
         }
 
         @Override
-        public void sendAll(MessageGroupBatch message, String... queueAttr) throws IOException {
+        public void sendAll(MessageGroupBatch message, String... queueAttr){
             listOfMessages.add(message);
         }
 
@@ -158,7 +188,7 @@ public class MainTest {
         }
 
         @Override
-        public void close() throws Exception {
+        public void close(){
 
         }
 
@@ -191,22 +221,22 @@ public class MainTest {
         }
 
         @Override
-        public void send(EventBatch message) throws IOException {
+        public void send(EventBatch message){
 
         }
 
         @Override
-        public void send(EventBatch message, String... queueAttr) throws IOException {
+        public void send(EventBatch message, String... queueAttr){
 
         }
 
         @Override
-        public void sendAll(EventBatch message, String... queueAttr) throws IOException {
+        public void sendAll(EventBatch message, String... queueAttr){
 
         }
 
         @Override
-        public void close() throws Exception {
+        public void close(){
 
         }
     }

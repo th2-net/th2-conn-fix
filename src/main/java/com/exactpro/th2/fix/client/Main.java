@@ -1,3 +1,5 @@
+package com.exactpro.th2.fix.client;
+
 import com.exactpro.th2.common.event.Event;
 import com.exactpro.th2.common.grpc.AnyMessage;
 import com.exactpro.th2.common.grpc.ConnectionID;
@@ -9,18 +11,22 @@ import com.exactpro.th2.common.schema.message.MessageListener;
 import com.exactpro.th2.common.schema.message.MessageRouter;
 import com.exactpro.th2.common.schema.message.MessageRouterUtils;
 import com.exactpro.th2.common.schema.message.SubscriberMonitor;
+import com.exactpro.th2.fix.client.fixBean.FixBean;
+import com.exactpro.th2.fix.client.impl.Destructor;
+import com.exactpro.th2.fix.client.service.FixBeanService;
+import com.exactpro.th2.fix.client.util.MessageUtil;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.google.protobuf.InvalidProtocolBufferException;
-import fixBean.SessionFixBean;
-import impl.Destructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import quickfix.*;
-import util.MessageUtil;
 
-import javax.management.JMException;
+import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.List;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
@@ -28,44 +34,54 @@ import java.util.concurrent.locks.ReentrantLock;
 public class Main {
 
     private static final String INPUT_QUEUE_ATTRIBUTE = "send";
-    private static final Logger log = LoggerFactory.getLogger(Main.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 
     public static class Resources {
         String name;
         Destructor destructor;
 
+        public String getName() {
+            return name;
+        }
+
+        public Destructor getDestructor() {
+            return destructor;
+        }
+
         public Resources(String name, Destructor destructor) {
             this.name = name;
             this.destructor = destructor;
+
+
         }
     }
 
-    public static void main(String[] args) throws ConfigError, FieldConvertError, JMException {
-        CommonFactory factory;
+    public static void main(String[] args) throws ConfigError {
         ConcurrentLinkedDeque<Resources> resources = new ConcurrentLinkedDeque<>();
         try {
             Runtime.getRuntime().addShutdownHook(new Thread(
-                    () -> resources.descendingIterator().forEachRemaining((resource) -> {
-                        log.debug("Destroying resource: " + resource.name);
+                    () -> resources.descendingIterator().forEachRemaining(resource -> {
+                        LOGGER.debug("Destroying resource: " + resource.name);
                         try {
                             resource.destructor.close();
                         } catch (Exception e) {
-                            log.error("Failed to destroy resource: " + resource.name);
+                            LOGGER.error("Failed to destroy resource: " + resource.name);
                         }
                     })
             ));
-        } catch (Exception e) {
-            log.error("Uncaught exception. Shutting down");
+        } catch (RuntimeException e) {
+            LOGGER.error("Uncaught exception. Shutting down");
             System.exit(1);
-            throw new RuntimeException("System.exit returned normally, while it was supposed to halt JVM.");
+            throw new RuntimeException("System.exit returned normally, while it was supposed to halt JVM.", e);
         }
 
+        CommonFactory factory;
         try {
             factory = CommonFactory.createFromArguments(args);
             resources.add(new Resources("factory", factory::close));
         } catch (Exception e) {
             factory = new CommonFactory();
-            log.error("Failed to create common factory from args", e);
+            LOGGER.error("Failed to create common factory from args", e);
         }
 
         JsonMapper mapper = JsonMapper.builder().build();
@@ -80,21 +96,29 @@ public class Main {
     }
 
     public static void run(Settings settings, MessageRouter<MessageGroupBatch> messageRouter, MessageRouter<EventBatch> eventRouter,
-                           GrpcRouter grpcRouter, ConcurrentLinkedDeque<Resources> resources) throws ConfigError, FieldConvertError, JMException {
+                           GrpcRouter grpcRouter, Deque<Resources> resources) throws ConfigError {
 
-        SessionFixBean sessionFixBean = new SessionFixBean();
-        sessionFixBean.createConfig();    //create config file for FIX
-        String sessionAlias = new SessionFixBean().getSessionAlias();
+        FixBeanService fixBeanService = new FixBeanService();
+        File configFile = fixBeanService.createConfig(settings.fixBeanList);
 
-        ConnectionID connectionID = ConnectionID.newBuilder().setSessionAlias(sessionAlias).build();
+        resources.add(new Resources("config file", configFile::deleteOnExit));
+
+        List<String> sessionAliases = fixBeanService.getSessionAliases(settings.fixBeanList);
+        List<ConnectionID> connectionIDS = new ArrayList<>();
+
+        for (String sessionAlias : sessionAliases) {
+            connectionIDS.add(ConnectionID.newBuilder().setSessionAlias(sessionAlias).build());
+        }
+
+        String joinedSessionAliases = String.join(":", sessionAliases);
 
         Event curEvent = MessageRouterUtils.storeEvent(eventRouter, Event.start(), null);
-        curEvent.name("FIX client " + sessionAlias + Instant.now());
+        curEvent.name("FIX client " + joinedSessionAliases + Instant.now());
         curEvent.type("Microservice");
         String rootEventId = curEvent.getId();
 
-        FixClient fixClient = new FixClient(new SessionSettings("src/main/resources/acceptor/acceptor.cfg"),
-                messageRouter, eventRouter, connectionID, rootEventId);
+        FixClient fixClient = new FixClient(new SessionSettings(configFile.getAbsolutePath()),
+                messageRouter, eventRouter, connectionIDS, rootEventId);
 
         resources.add(new Resources("client", fixClient::stop));
 
@@ -106,25 +130,26 @@ public class Main {
             groupBatch.getGroupsList().forEach((group) -> {
                 try {
                     if (group.getMessagesCount() != 1) {
-                        log.error("Message group contains more than 1 message", new IllegalArgumentException());
+                        LOGGER.error("Message group contains more than 1 message", new IllegalArgumentException());
                         throw new IllegalArgumentException();
                     }
                     AnyMessage message = group.getMessagesList().get(0);
                     if (!message.hasRawMessage()) {
-                        log.error("Message in the group is not a raw message", new IllegalArgumentException());
+                        LOGGER.error("Message in the group is not a raw message", new IllegalArgumentException());
                         throw new IllegalArgumentException();
                     }
 
-                    Session session = fixClient.getApplication().getSession();
-                    Message fixMessage = MessageUtils.parse(session, new String(message.getRawMessage().getBody().toByteArray(), StandardCharsets.UTF_8));
+                    SessionID sessionID = MessageUtil.getSessionID(fromAnyMessageToString(message));
+                    Session session = Session.lookupSession(sessionID);
+                    Message fixMessage = MessageUtils.parse(session, fromAnyMessageToString(message));
                     session.send(fixMessage);
 
                 } catch (Exception e) {
                     try {
-                        log.error("Failed to handle message group: " + MessageUtil.toPrettyString(group), e);
+                        LOGGER.error("Failed to handle message group: " + MessageUtil.toPrettyString(group), e); //todo toPrettyString do not work
                         MessageRouterUtils.storeEvent(eventRouter, rootEventId, "Failed to handle message group: " + MessageUtil.toPrettyString(group), "Error", e);
                     } catch (InvalidProtocolBufferException invalidProtocolBufferException) {
-                        log.error("Failed to handle message group: ", invalidProtocolBufferException);
+                        LOGGER.error("Failed to handle message group: ", invalidProtocolBufferException);
                     }
                 }
             });
@@ -132,17 +157,16 @@ public class Main {
 
         try {
             SubscriberMonitor monitor = messageRouter.subscribe(listener, INPUT_QUEUE_ATTRIBUTE);
-            if (monitor != null) {
-                resources.add(new Resources("raw-monitor", monitor::unsubscribe));
-            }
+            if (monitor == null) throw new NullPointerException();
+            resources.add(new Resources("raw-monitor", monitor::unsubscribe));
         } catch (Exception e) {
-            log.error("Failed to subscribe to input queue", e);
+            throw new IllegalStateException("Failed to subscribe to input queue");
         }
 
         if (settings.autoStart) fixClient.start();
         if (settings.grpcStartControl) grpcRouter.startServer(new ControlService(controller));
 
-        log.info("Successfully started");
+        LOGGER.info("Successfully started");
 
         ReentrantLock lock = new ReentrantLock();
         Condition condition = lock.newCondition();
@@ -158,17 +182,53 @@ public class Main {
             condition.await();
             lock.unlock();
         } catch (InterruptedException e) {
-            log.error("Interrupted Exception in main", e);
+            LOGGER.error("Cannot get lock for session", e);
         }
 
-        log.info("Finished running");
+        LOGGER.info("Finished running");
 
     }
+    private static String fromAnyMessageToString(AnyMessage message){
+        return new String(message.getRawMessage().getBody().toByteArray(), StandardCharsets.UTF_8);
+    }
 
-    public static class Settings {
+    public static class Settings extends FixBean {
         boolean grpcStartControl = false;
         boolean autoStart = true;
         int autoStopAfter = 0;
+        List<FixBean> fixBeanList;
+
+        public void setFixBeanList(List<FixBean> fixBeanList) {
+            this.fixBeanList = fixBeanList;
+        }
+
+        public boolean isGrpcStartControl() {
+            return grpcStartControl;
+        }
+
+        public void setGrpcStartControl(boolean grpcStartControl) {
+            this.grpcStartControl = grpcStartControl;
+        }
+
+        public boolean isAutoStart() {
+            return autoStart;
+        }
+
+        public void setAutoStart(boolean autoStart) {
+            this.autoStart = autoStart;
+        }
+
+        public int getAutoStopAfter() {
+            return autoStopAfter;
+        }
+
+        public void setAutoStopAfter(int autoStopAfter) {
+            this.autoStopAfter = autoStopAfter;
+        }
+
+        public List<FixBean> getFixBeanList() {
+            return fixBeanList;
+        }
     }
 
 }
