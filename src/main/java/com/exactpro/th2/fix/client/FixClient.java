@@ -7,9 +7,18 @@ import com.exactpro.th2.common.schema.message.MessageRouter;
 import com.exactpro.th2.fix.client.service.ClientApplication;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import quickfix.*;
+import quickfix.ConfigError;
+import quickfix.DefaultMessageFactory;
+import quickfix.FileLogFactory;
+import quickfix.FileStoreFactory;
+import quickfix.LogFactory;
+import quickfix.MessageFactory;
+import quickfix.MessageStoreFactory;
+import quickfix.SessionID;
+import quickfix.SessionSettings;
+import quickfix.SocketInitiator;
 
-import java.util.List;
+import java.util.Map;
 
 
 public class FixClient {
@@ -21,17 +30,16 @@ public class FixClient {
 
 
     public FixClient(SessionSettings settings, MessageRouter<MessageGroupBatch> messageRouter, MessageRouter<EventBatch> eventRouter,
-                     List<ConnectionID> connectionIDS, String rootEventId) throws ConfigError {
+                     Map<SessionID, ConnectionID> connections, String rootEventId) throws ConfigError {
 
         ClientApplication application = new ClientApplication();
         MessageStoreFactory messageStoreFactory = new FileStoreFactory(settings);
-        LogFactory logFactory = new LogFactoryImpl(new FileLogFactory(settings), messageRouter, eventRouter, connectionIDS, rootEventId);
+        LogFactory logFactory = new LogFactoryImpl(new FileLogFactory(settings), messageRouter, eventRouter, connections, rootEventId);
         MessageFactory messageFactory = new DefaultMessageFactory();
 
         initiator = new SocketInitiator(application, messageStoreFactory, settings, logFactory, messageFactory);
 
     }
-
 
     public synchronized void start() {
         try {
@@ -43,10 +51,10 @@ public class FixClient {
     }
 
     public synchronized void stop() {
-        try{
+        try {
             isRunning = false;
             initiator.stop();
-        }catch (Exception e){
+        } catch (Exception e) {
             LOGGER.error("Failed to stop client", e);
         }
     }
@@ -54,5 +62,4 @@ public class FixClient {
     public boolean isRunning() {
         return isRunning;
     }
-
 }

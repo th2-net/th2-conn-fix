@@ -1,11 +1,6 @@
 package com.exactpro.th2.fix.client.fixBean;
 
 
-import quickfix.field.BeginString;
-import quickfix.field.HeartBtInt;
-import quickfix.field.SenderCompID;
-import quickfix.field.TargetCompID;
-
 public class FixBean {
 
     protected String applicationID = "client";
@@ -13,46 +8,60 @@ public class FixBean {
     protected String fileLogPath = "outgoing";
     protected String connectionType = "initiator";
     protected long reconnectInterval = 60;
-    protected HeartBtInt heartBtInt = new HeartBtInt(30);
+    protected long heartBtInt = 30;
     protected String useDataDictionary = "Y";
     protected String mmValidateUserDefinedFields = "N";
     protected String validateIncomingMessage = "N";
     protected String refreshOnLogon = "Y";
-    protected String NonStopSession = "Y";
+    protected String nonStopSession = "Y";
 
-    protected BeginString beginString = new BeginString("FIX.4.2");
+    protected String beginString = "FIX.4.2";
     protected String socketConnectHost = "localhost";
     protected long socketConnectPort = 9877;
-    protected SenderCompID senderCompID = new SenderCompID("client");
-    protected TargetCompID targetCompID = new TargetCompID("server");
-    protected String sessionAlias = "FIX.4.2:client->server";
+    protected String senderCompID = "client";
+    protected String senderSubID = null;
+    protected String senderLocationID = null;
+    protected String targetCompID = "server";
+    protected String targetSubID = null;
+    protected String targetLocationID = null;
+    protected String dataDictionary = null;
+    protected String sessionQualifier = null;
+    protected String sessionAlias = null;
 
     public FixBean() {
     }
 
-    public StringBuilder toConfig(String sectionName){ //todo mb getting fixBean as argument to fixBean was POJO?
+    public StringBuilder toConfig(String sectionName) { //todo mb getting fixBean as argument to fixBean was POJO?
         StringBuilder sb = new StringBuilder();
-        sb.append("[").append(sectionName).append("]").append("\n");
-        if(sectionName.equals("default")) {
-            sb.append("ApplicationID=").append(applicationID).append("\n");
-            sb.append("FileStorePath=").append(fileStorePath).append("\n");
-            sb.append("FileLogPath=").append(fileLogPath).append("\n");
-            sb.append("ConnectionType=").append(connectionType).append("\n");
-            sb.append("ReconnectInterval=").append(reconnectInterval).append("\n");
-            sb.append("NonStopSession=").append("Y").append("\n");
-            sb.append("HeartBtInt=").append(heartBtInt.getValue()).append("\n");
-            sb.append("UseDataDictionary=").append(useDataDictionary).append("\n");
-            sb.append("ValidateUserDefinedFields=").append(mmValidateUserDefinedFields).append("\n");
-            sb.append("ValidateIncomingMessage=").append(validateIncomingMessage).append("\n");
-            sb.append("RefreshOnLogon=").append(refreshOnLogon).append("\n");
-        }
-        if(sectionName.equals("session")) {
-            if (beginString != null) sb.append("BeginString=").append(beginString.getValue()).append("\n");
-            if (socketConnectHost != null) sb.append("SocketConnectHost=").append(socketConnectHost).append("\n");
-            if (socketConnectPort != 0) sb.append("SocketConnectPort=").append(socketConnectPort).append("\n");
-            if (senderCompID != null) sb.append("SenderCompID=").append(senderCompID.getValue()).append("\n");
-            if (targetCompID != null) sb.append("TargetCompID=").append(targetCompID.getValue()).append("\n");
-            if (sessionAlias != null) sb.append("SessionAlias=").append(sessionAlias).append("\n");
+        sb.append("[").append(sectionName).append("]").append(System.lineSeparator());
+        sb.append("ApplicationID=").append(applicationID).append(System.lineSeparator());
+        sb.append("FileStorePath=").append(fileStorePath).append(System.lineSeparator());
+        sb.append("FileLogPath=").append(fileLogPath).append(System.lineSeparator());
+        sb.append("ConnectionType=").append(connectionType).append(System.lineSeparator());
+        sb.append("ReconnectInterval=").append(reconnectInterval).append(System.lineSeparator());
+        sb.append("NonStopSession=").append(nonStopSession).append(System.lineSeparator());
+        sb.append("HeartBtInt=").append(heartBtInt).append(System.lineSeparator());
+        sb.append("UseDataDictionary=").append(useDataDictionary).append(System.lineSeparator());
+        sb.append("ValidateUserDefinedFields=").append(mmValidateUserDefinedFields).append(System.lineSeparator());
+        sb.append("ValidateIncomingMessage=").append(validateIncomingMessage).append(System.lineSeparator());
+        sb.append("RefreshOnLogon=").append(refreshOnLogon).append(System.lineSeparator());
+
+        if (!sectionName.equals("default")) {
+            if (beginString != null) sb.append("BeginString=").append(beginString).append(System.lineSeparator());
+            if (socketConnectHost != null)
+                sb.append("SocketConnectHost=").append(socketConnectHost).append(System.lineSeparator());
+            if (socketConnectPort != 0)
+                sb.append("SocketConnectPort=").append(socketConnectPort).append(System.lineSeparator());
+            if (senderCompID != null) sb.append("SenderCompID=").append(senderCompID).append(System.lineSeparator());
+            if (senderSubID != null) sb.append("SenderSubID=").append(senderSubID).append(System.lineSeparator());
+            if (senderLocationID != null)
+                sb.append("senderLocationID=").append(senderLocationID).append(System.lineSeparator());
+            if (targetCompID != null) sb.append("TargetCompID=").append(targetCompID).append(System.lineSeparator());
+            if (targetSubID != null) sb.append("targetSubID=").append(targetSubID).append(System.lineSeparator());
+            if (targetLocationID != null)
+                sb.append("targetLocationID=").append(targetLocationID).append(System.lineSeparator());
+            if (dataDictionary != null)
+                sb.append("DataDictionary=").append(dataDictionary).append(System.lineSeparator());
         }
 
         return sb;
@@ -62,16 +71,84 @@ public class FixBean {
         this.socketConnectPort = socketConnectPort;
     }
 
-    public void setSenderCompID(SenderCompID senderCompID) {//todo delete
+    public void setSenderCompID(String senderCompID) {
         this.senderCompID = senderCompID;
+    }
+
+    public void setDataDictionary(String dataDictionary) {
+        this.dataDictionary = dataDictionary;
+    }
+
+    public String getSessionAlias() {
+        return sessionAlias;
     }
 
     public void setSessionAlias(String sessionAlias) {
         this.sessionAlias = sessionAlias;
     }
 
-    public BeginString getBeginString() {
+    public String getSenderSubID() {
+        return senderSubID;
+    }
+
+    public String getSessionQualifier() {
+        return sessionQualifier;
+    }
+
+    public void setSessionQualifier(String sessionQualifier) {
+        this.sessionQualifier = sessionQualifier;
+    }
+
+    public void setSenderSubID(String senderSubID) {
+        this.senderSubID = senderSubID;
+    }
+
+    public String getSenderLocationID() {
+        return senderLocationID;
+    }
+
+    public void setSenderLocationID(String senderLocationID) {
+        this.senderLocationID = senderLocationID;
+    }
+
+    public String getTargetSubID() {
+        return targetSubID;
+    }
+
+    public void setTargetSubID(String targetSubID) {
+        this.targetSubID = targetSubID;
+    }
+
+    public String getTargetLocationID() {
+        return targetLocationID;
+    }
+
+    public void setTargetLocationID(String targetLocationID) {
+        this.targetLocationID = targetLocationID;
+    }
+
+    public String getDataDictionary() {
+        return dataDictionary;
+    }
+
+    public long getHeartBtInt() {
+        return heartBtInt;
+    }
+
+    public String getNonStopSession() {
+        return nonStopSession;
+    }
+
+    public String getBeginString() {
         return beginString;
+    }
+
+    public String getSenderCompID() {
+        return senderCompID;
+    }
+
+    public String getTargetCompID() {
+        return targetCompID;
     }
 
     public String getSocketConnectHost() {
@@ -80,22 +157,6 @@ public class FixBean {
 
     public long getSocketConnectPort() {
         return socketConnectPort;
-    }
-
-    public TargetCompID getTargetCompID() {
-        return targetCompID;
-    }
-
-    public SenderCompID getSenderCompID() {
-        return senderCompID;
-    }
-
-    public String getSessionAlias() {
-        return sessionAlias;
-    }
-
-    public String getNonStopSession() {
-        return NonStopSession;
     }
 
     public String getApplicationID() {
@@ -116,10 +177,6 @@ public class FixBean {
 
     public long getReconnectInterval() {
         return reconnectInterval;
-    }
-
-    public HeartBtInt getHeartBtInt() {
-        return heartBtInt;
     }
 
     public String getUseDataDictionary() {

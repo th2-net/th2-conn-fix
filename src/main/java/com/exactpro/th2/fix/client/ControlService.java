@@ -6,15 +6,22 @@ import com.exactpro.th2.conn.grpc.StartRequest;
 import com.exactpro.th2.conn.grpc.StopRequest;
 import io.grpc.stub.StreamObserver;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.exactpro.th2.conn.grpc.Response.Status.FAILURE;
 import static com.exactpro.th2.conn.grpc.Response.Status.SUCCESS;
 
 class ControlService extends ConnImplBase {
-    private final ClientController controller;
+    private static final Logger LOGGER = LoggerFactory.getLogger(ControlService.class);
+    private ClientController controller;
 
     public ControlService(@NotNull ClientController controller) {
-        this.controller = controller;
+        if (controller != null) {
+            this.controller = controller;
+        } else {
+            LOGGER.error("Client Controller cannot be null!", new NullPointerException("Client Controller cannot be null!"));
+        }
     }
 
     @Override
@@ -27,7 +34,7 @@ class ControlService extends ConnImplBase {
                 controller.start(request.getStopAfter());
                 if (request.getStopAfter() > 0) {
                     observer.onNext(success("Started with scheduled stop after " + request.getStopAfter() + " seconds"));
-                }else {
+                } else {
                     observer.onNext(success("Successfully started"));
                 }
             }
@@ -42,10 +49,9 @@ class ControlService extends ConnImplBase {
     public synchronized void stop(StopRequest request, StreamObserver<Response> observer) {
 
         try {
-            if (!controller.isRunning){
+            if (!controller.isRunning) {
                 observer.onNext(failure("Already stopped"));
-            }
-            else {
+            } else {
                 controller.stop();
                 observer.onNext(success("Successfully stopped"));
             }

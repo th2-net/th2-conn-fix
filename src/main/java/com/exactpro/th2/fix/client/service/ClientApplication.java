@@ -27,12 +27,10 @@ public class ClientApplication implements Application {
 
     @Override
     public void toAdmin(Message message, SessionID sessionId) {
-        LOGGER.info(">> toAdmin for session: {} with message {}", sessionId, message);
     }
 
     @Override
     public void fromAdmin(Message message, SessionID sessionId) {
-        LOGGER.info("<< fromAdmin for session: {} with message {}", sessionId, message);
     }
 
     @Override

@@ -8,28 +8,28 @@ import quickfix.Log;
 import quickfix.LogFactory;
 import quickfix.SessionID;
 
-import java.util.List;
+import java.util.Map;
 
 public class LogFactoryImpl implements LogFactory {
 
     private final MessageRouter<MessageGroupBatch> messageRouter;
     private final MessageRouter<EventBatch> eventBatch;
     private final LogFactory logFactory;
-    private final List<ConnectionID> connectionIDS;
+    private final Map<SessionID, ConnectionID> connections;
     private final String rootEventId;
 
-        public LogFactoryImpl(LogFactory logFactory, MessageRouter<MessageGroupBatch> messageRouter, MessageRouter<EventBatch> eventRouter,
-                          List<ConnectionID> connectionIDS, String rootEventId) {
+    public LogFactoryImpl(LogFactory logFactory, MessageRouter<MessageGroupBatch> messageRouter, MessageRouter<EventBatch> eventRouter,
+                          Map<SessionID, ConnectionID> connections, String rootEventId) {
         this.logFactory = logFactory;
         this.messageRouter = messageRouter;
         this.eventBatch = eventRouter;
-        this.connectionIDS = connectionIDS;
+        this.connections = connections;
         this.rootEventId = rootEventId;
     }
 
     @Override
     public Log create(SessionID sessionID) {
-        return new LogImpl(logFactory.create(sessionID), messageRouter, eventBatch, connectionIDS, rootEventId);
+        return new LogImpl(logFactory.create(sessionID), messageRouter, eventBatch, connections.get(sessionID), rootEventId);
     }
 
 }

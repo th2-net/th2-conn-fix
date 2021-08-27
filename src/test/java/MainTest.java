@@ -1,4 +1,8 @@
-import com.exactpro.th2.common.grpc.*;
+import com.exactpro.th2.common.grpc.AnyMessage;
+import com.exactpro.th2.common.grpc.EventBatch;
+import com.exactpro.th2.common.grpc.MessageGroup;
+import com.exactpro.th2.common.grpc.MessageGroupBatch;
+import com.exactpro.th2.common.grpc.RawMessage;
 import com.exactpro.th2.common.schema.grpc.router.GrpcRouter;
 import com.exactpro.th2.common.schema.message.MessageListener;
 import com.exactpro.th2.common.schema.message.MessageRouter;
@@ -18,11 +22,17 @@ import org.mockito.Mockito;
 import quickfix.ConfigError;
 import quickfix.Message;
 import quickfix.field.BeginString;
+import quickfix.field.ClOrdID;
+import quickfix.field.HandlInst;
 import quickfix.field.MsgType;
+import quickfix.field.OrdType;
 import quickfix.field.SenderCompID;
+import quickfix.field.Side;
+import quickfix.field.Symbol;
 import quickfix.field.TargetCompID;
+import quickfix.field.TransactTime;
 
-import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedDeque;
@@ -43,25 +53,26 @@ public class MainTest extends Main{
     @Test
     public void runTest() throws Exception {
 
-        Main.Settings settings = new Main.Settings();
+        Main.Settings settings = new Settings();
 
         FixBean fixBean = new FixBean();
+        fixBean.setSessionAlias("FIX42ClientServer");
         FixBean fixBean1 = new FixBean();
 
-        fixBean1.setSenderCompID(new SenderCompID("client2"));
-        fixBean1.setSessionAlias("FIX.4.2:client2->server");
+        fixBean1.setSenderCompID("client2");
         fixBean1.setSocketConnectPort(9878);
+        fixBean1.setSessionAlias("FIX42Client2Server");
 
         List<FixBean> fixBeans = new ArrayList<>();
         fixBeans.add(fixBean);
         fixBeans.add(fixBean1);
-        settings.setFixBeanList(fixBeans);
+        settings.setSessionsSettings(fixBeans);
 
         MyMessageRouter messageRouter = new MyMessageRouter();
 
         MessageRouter<EventBatch> eventRouter = new MyEventRouter();
         GrpcRouter grpcRouter = Mockito.mock(GrpcRouter.class);
-        ConcurrentLinkedDeque<Resources> resources = new ConcurrentLinkedDeque<>();
+        ConcurrentLinkedDeque<Main.Resources> resources = new ConcurrentLinkedDeque<>();
 
         Thread thread = new Thread(() -> {
             try {
@@ -79,17 +90,15 @@ public class MainTest extends Main{
         header.setField(new SenderCompID("client"));
         header.setField(new TargetCompID("server"));
 
-
-//        NewOrderSingle fixMessage = new NewOrderSingle(
-//                new ClOrdID("1"),
-//                new HandlInst('1'),
-//                new Symbol("ClientXXXMMMMMMM"),
-//                new Side('1'),
-//                new TransactTime(LocalDateTime.now()),
-//                new OrdType('1'));
-//        // market order fields
-//        fixMessage.set(new OrderQty(1));
-//        fixMessage.set(new Price(10.0));
+        quickfix.fix42.NewOrderSingle fixMessage2 = new quickfix.fix42.NewOrderSingle(
+                new ClOrdID("ClOrdID"),
+                new HandlInst('3'),
+                new Symbol("Symbol"),
+                new Side('1'),
+                new TransactTime(LocalDateTime.now()),
+                new OrdType('1'));
+        fixMessage2.setField(new SenderCompID("client2"));
+        fixMessage2.setField(new TargetCompID("server"));
 
         MessageGroupBatch messageGroupBatch = MessageGroupBatch.newBuilder()
                 .addGroups(MessageGroup.newBuilder()
@@ -104,16 +113,29 @@ public class MainTest extends Main{
                         .build())
                 .build();
 
-        Thread.sleep(14000);
-
-        messageRouter.sendToSubscriber("xmm", messageGroupBatch);
+        MessageGroupBatch messageGroupBatch2 = MessageGroupBatch.newBuilder()
+                .addGroups(MessageGroup.newBuilder()
+                        .addMessages(AnyMessage.newBuilder()
+                                .setRawMessage(RawMessage.newBuilder()
+                                        .setBody(ByteString
+                                                .copyFrom(fixMessage2
+                                                        .toString()
+                                                        .getBytes()))
+                                        .build())
+                                .build())
+                        .build())
+                .build();
 
         Thread.sleep(10000);
 
-        for (MessageGroupBatch item : messageRouter.listOfMessages) {
+        messageRouter.sendToSubscriber("xmm", messageGroupBatch);
+        messageRouter.sendToSubscriber("xmm2", messageGroupBatch2);
+
+        Thread.sleep(10000);
+
+        for (MessageGroupBatch item : messageRouter.Messages) {
             System.out.println(item);
         }
-
 
         ReentrantLock lock = new ReentrantLock();
         Condition condition = lock.newCondition();
@@ -129,11 +151,11 @@ public class MainTest extends Main{
 
     public static class MyMessageRouter implements MessageRouter<MessageGroupBatch> {
 
-        List<MessageListener> listOfListeners = new ArrayList<>();
-        List<MessageGroupBatch> listOfMessages = new ArrayList<>();
+        List<MessageListener> Listeners = new ArrayList<>();
+        List<MessageGroupBatch> Messages = new ArrayList<>();
 
         public void sendToSubscriber(String tag, MessageGroupBatch message) throws Exception {
-            listOfListeners.get(0).handler(tag, message);
+            Listeners.get(0).handler(tag, message);
         }
 
         @Override
@@ -149,23 +171,23 @@ public class MainTest extends Main{
         @Override
         public void send(MessageGroupBatch message) {
 
-            listOfMessages.add(message);
+            Messages.add(message);
         }
 
         @Override
         public void send(MessageGroupBatch message, String... queueAttr){
-            listOfMessages.add(message);
+            Messages.add(message);
         }
 
         @Override
         public void sendAll(MessageGroupBatch message, String... queueAttr){
-            listOfMessages.add(message);
+            Messages.add(message);
         }
 
         @Override
         public @Nullable SubscriberMonitor subscribe(MessageListener callback, String... queueAttr) {
 
-            listOfListeners.add(callback);
+            Listeners.add(callback);
 
             return () -> {
             };
@@ -173,7 +195,7 @@ public class MainTest extends Main{
 
         @Override
         public @Nullable SubscriberMonitor subscribeAll(MessageListener callback) {
-            listOfListeners.add(callback);
+            Listeners.add(callback);
 
             return () -> {
             };
@@ -181,7 +203,7 @@ public class MainTest extends Main{
 
         @Override
         public @Nullable SubscriberMonitor subscribeAll(MessageListener callback, String... queueAttr) {
-            listOfListeners.add(callback);
+            Listeners.add(callback);
 
             return () -> {
             };

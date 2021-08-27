@@ -11,11 +11,9 @@ import com.exactpro.th2.fix.client.util.MessageUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import quickfix.Log;
-import quickfix.SessionID;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
@@ -28,15 +26,17 @@ public class LogImpl implements Log {
     private final Log log;
     private final MessageRouter<MessageGroupBatch> messageRouter;
     private final MessageRouter<EventBatch> eventRouter;
-    private final List<ConnectionID> connectionIDS;
+    private final ConnectionID connectionID;
     private final String rootEventId;
+    private final Supplier<Long> inputSeq = createSequence();
+    private final Supplier<Long> outputSeq = createSequence();
 
     public LogImpl(Log log, MessageRouter<MessageGroupBatch> messageRouter, MessageRouter<EventBatch> eventRouter,
-                   List<ConnectionID> connectionIDS, String rootEventId) {
+                   ConnectionID connectionID, String rootEventId) {
         this.log = log;
         this.messageRouter = messageRouter;
         this.eventRouter = eventRouter;
-        this.connectionIDS = connectionIDS;
+        this.connectionID = connectionID;
         this.rootEventId = rootEventId;
     }
 
@@ -50,96 +50,55 @@ public class LogImpl implements Log {
     public void onIncoming(String message) {
         log.onIncoming(message);
 
-        String sessionAlias = createSessionAlias(message, Direction.FIRST);
         try {
-            onMessage(messageRouter, message.getBytes(), getConnectionId(sessionAlias), Direction.FIRST);
-        } catch (IOException e) {
-            LOGGER.error("Failed to store incoming message: {}", message);
-            onErrorEvent(message, e);
+            onMessage(message, Direction.FIRST);
+        } catch (Exception e) {
+            sendError(connectionID.getSessionAlias(), e);
         }
-
     }
-
 
     @Override
     public void onOutgoing(String message) {
         log.onOutgoing(message);
 
-        String sessionAlias = createSessionAlias(message, Direction.SECOND);
         try {
-            onMessage(messageRouter, message.getBytes(), getConnectionId(sessionAlias), Direction.SECOND);
+            onMessage(message, Direction.SECOND);
         } catch (Exception e) {
-            LOGGER.error("Failed to send outgoing message: {}", message);
-            onErrorEvent(message, e);
+            sendError(connectionID.getSessionAlias(), e);
         }
     }
 
+    private void sendError(String sessionAlias, Exception e) {
+        LOGGER.error("Failed to send message for sessionAlias: {}", sessionAlias, e);
+        onErrorEvent("Failed to send message for sessionAlias: " + sessionAlias, e);
+    }
 
     @Override
     public void onEvent(String text) {
-
         log.onEvent(text);
-        onEvent(null, eventRouter, rootEventId, text);
+        MessageRouterUtils.storeEvent(eventRouter, rootEventId, text, "Info", null);
+
     }
 
     @Override
     public void onErrorEvent(String text) {
-
-        log.onEvent(text);
+        log.onErrorEvent(text);
+        MessageRouterUtils.storeEvent(eventRouter, rootEventId, text, "Error", null);
     }
 
     public void onErrorEvent(String text, Throwable e) {
-        log.onEvent(text);
-        onEvent(e, eventRouter, rootEventId, text);
+        log.onErrorEvent(text);
+        MessageRouterUtils.storeEvent(eventRouter, rootEventId, text, "Error", e);
     }
 
-    Supplier<Long> inputSeq = createSequence();
-    Supplier<Long> outputSeq = createSequence();
-
-    public void onMessage(MessageRouter<MessageGroupBatch> messageRouter, byte[] message,
-                          ConnectionID connectionID, Direction direction) throws IOException {
+    private void onMessage(String message, Direction direction) throws IOException {
         Supplier<Long> sequence = direction == Direction.FIRST ? inputSeq : outputSeq;
         QueueAttribute attribute = direction == Direction.FIRST ? QueueAttribute.FIRST : QueueAttribute.SECOND;
-        messageRouter.send(MessageUtil.toBatch(message, connectionID, direction, sequence.get()), attribute.toString());
-
+        messageRouter.send(MessageUtil.toBatch(message.getBytes(), connectionID, direction, sequence.get()), attribute.toString());
     }
 
-    public void onEvent(Throwable cause, MessageRouter<EventBatch> eventRouter, String rootEventId, String message) {
-        String type = cause != null ? "Error" : "Info";
-        MessageRouterUtils.storeEvent(eventRouter, rootEventId, message, type, cause);
-    }
-
-    private Supplier<Long> createSequence() {
+    private static Supplier<Long> createSequence() {
         Instant instant = Instant.now();
         return (new AtomicLong(instant.getEpochSecond() * SECONDS.toNanos(1) + instant.getNano()))::incrementAndGet;
-
-    }
-
-    private String createSessionAlias(String message, Direction direction) { //todo rethink the logic
-        SessionID sessionID = MessageUtil.getSessionID(message);
-        String sessionAlias = "";
-
-        if (direction == Direction.FIRST) {
-            sessionAlias = sessionID.getBeginString()
-                    .concat(":")
-                    .concat(sessionID.getTargetCompID())
-                    .concat("->")
-                    .concat(sessionID.getSenderCompID());
-        } else {
-            sessionAlias = sessionID.getBeginString()
-                    .concat(":")
-                    .concat(sessionID.getSenderCompID())
-                    .concat("->")
-                    .concat(sessionID.getTargetCompID());
-        }
-        return sessionAlias;
-    }
-
-    private ConnectionID getConnectionId(String sessionAlias) {
-
-        return connectionIDS.stream()
-                .filter(x -> x.getSessionAlias().equals(sessionAlias))
-                .findFirst()
-                .orElseThrow(NullPointerException::new);
     }
 }

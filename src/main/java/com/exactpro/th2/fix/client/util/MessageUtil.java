@@ -1,21 +1,21 @@
 package com.exactpro.th2.fix.client.util;
 
-import com.exactpro.th2.common.grpc.*;
+import com.exactpro.th2.common.grpc.AnyMessage;
+import com.exactpro.th2.common.grpc.ConnectionID;
+import com.exactpro.th2.common.grpc.Direction;
+import com.exactpro.th2.common.grpc.MessageGroup;
+import com.exactpro.th2.common.grpc.MessageGroupBatch;
+import com.exactpro.th2.common.grpc.MessageID;
+import com.exactpro.th2.common.grpc.RawMessage;
+import com.exactpro.th2.common.grpc.RawMessageMetadata;
 import com.exactpro.th2.common.message.MessageUtils;
 import com.google.protobuf.ByteString;
-import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.MessageOrBuilder;
-import com.google.protobuf.util.JsonFormat;
 import quickfix.SessionID;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 
 public class MessageUtil {
-
-    public static String toPrettyString(MessageOrBuilder messageOrBuilder) throws InvalidProtocolBufferException {
-        return JsonFormat.printer().omittingInsignificantWhitespace().includingDefaultValueFields().print(messageOrBuilder);
-    }
-
 
     public static MessageGroupBatch toBatch(byte[] byteArray, ConnectionID connectionID, Direction direction, long sequence) {
         RawMessage.Builder rawMessage = RawMessage.newBuilder();
@@ -38,16 +38,44 @@ public class MessageUtil {
 
     public static SessionID getSessionID(String message) {
 
-        int indexOfSenderCompId = message.indexOf("\u000149=") + 4;
-        int indexOfTargetCompId = message.indexOf("\u000156=") + 4;
+        String senderSubID = "";
+        String senderLocationID = "";
+        String targetSubID = "";
+        String targetLocationID = "";
+        String sessionQualifier = "";
 
-        String substringFromSenderCompId = message.substring(indexOfSenderCompId);
-        String substringFromTargetCompId = message.substring(indexOfTargetCompId);
+        char soh = '\u0001'; //quickfix tags delimiter
+        String subStringSenderCompId = soh + "49=";
+        String subStringTargetCompId = soh + "56=";
+        String subStringSenderSubId = soh + "50=";
+        String subStringSenderLocationId = soh + "142=";
+        String subStringTargetSubId = soh + "57=";
+        String subStringTargetLocationId = soh + "143=";
 
-        String beginString = message.substring(2, message.indexOf('\u0001'));
-        String senderCompId = message.substring(indexOfSenderCompId, indexOfSenderCompId + substringFromSenderCompId.indexOf('\u0001'));
-        String targetCompId = message.substring(indexOfTargetCompId, indexOfTargetCompId + substringFromTargetCompId.indexOf('\u0001'));
+        int indexOfSenderCompId = message.indexOf(subStringSenderCompId) + 4;
+        int indexOfTargetCompId = message.indexOf(subStringTargetCompId) + 4;
+        int indexOfSenderSubId = message.indexOf(subStringSenderSubId) + 4;
+        int indexOfSenderLocationID = message.indexOf(subStringSenderLocationId) + 4;
+        int indexOfTargetSubID = message.indexOf(subStringTargetSubId) + 4;
+        int indexOfTargetLocationID = message.indexOf(subStringTargetLocationId) + 4;
 
-        return new SessionID(beginString, senderCompId, targetCompId);
+        String beginString = message.substring(2, message.indexOf(soh));
+        String senderCompId = message.substring(indexOfSenderCompId, message.indexOf(soh, indexOfSenderCompId));
+        String targetCompId = message.substring(indexOfTargetCompId, message.indexOf(soh, indexOfTargetCompId));
+        if (indexOfSenderSubId != 3)
+            senderSubID = message.substring(indexOfSenderSubId, message.indexOf(message.indexOf(soh, indexOfSenderSubId)));
+        if (indexOfSenderLocationID != 3)
+            senderLocationID = message.substring(indexOfSenderLocationID, message.indexOf(message.indexOf(soh, indexOfSenderLocationID)));
+        if (indexOfTargetSubID != 3)
+            targetSubID = message.substring(indexOfTargetSubID, message.indexOf(message.indexOf(soh, indexOfTargetSubID)));
+        if (indexOfTargetLocationID != 3)
+            targetLocationID = message.substring(indexOfTargetLocationID, message.indexOf(message.indexOf(soh, indexOfTargetLocationID)));
+
+        return new SessionID(beginString, senderCompId, senderSubID, senderLocationID, targetCompId, targetSubID, targetLocationID, sessionQualifier);
     }
+
+    public static String rawToString(AnyMessage message) {
+        return new String(message.getRawMessage().getBody().toByteArray(), StandardCharsets.UTF_8);
+    }
+
 }
