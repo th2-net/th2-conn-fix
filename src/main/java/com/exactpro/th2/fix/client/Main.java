@@ -16,9 +16,12 @@ import com.exactpro.th2.fix.client.impl.Destructor;
 import com.exactpro.th2.fix.client.util.FixBeanUtil;
 import com.exactpro.th2.fix.client.util.MessageUtil;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import quickfix.ConfigError;
+import quickfix.DataDictionary;
 import quickfix.Message;
 import quickfix.MessageUtils;
 import quickfix.Session;
@@ -34,6 +37,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
@@ -46,8 +50,8 @@ public class Main {
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 
     public static class Resources {
-        String name;
-        Destructor destructor;
+        private final String name;
+        private final Destructor destructor;
 
         public String getName() {
             return name;
@@ -63,7 +67,7 @@ public class Main {
         }
     }
 
-    public static void main(String[] args) throws ConfigError {
+    public static void main(String[] args) {
         ConcurrentLinkedDeque<Resources> resources = new ConcurrentLinkedDeque<>();
         try {
             Runtime.getRuntime().addShutdownHook(new Thread(
@@ -99,53 +103,26 @@ public class Main {
         try (ZipInputStream zin = new ZipInputStream(factory.readDictionary())) {
             ZipEntry zipEntry;
             while ((zipEntry = zin.getNextEntry()) != null) {
+                if (!zipEntry.getName().matches("FIX\\.[4-5]\\.[0-4]\\.xml"))
+                    throw new IllegalArgumentException("Incorrect file name for FIX dictionary"); //should we create a custom exception for this case?
                 File dataDict = File.createTempFile(zipEntry.getName(), "xml");
                 Files.write(dataDict.toPath(), zin.readAllBytes());
+                new DataDictionary(dataDict.getAbsolutePath()); //check that xml file contains the correct values
                 dictionaries.add(dataDict);
                 dataDict.deleteOnExit();
             }
-        } catch (IOException | NullPointerException e) {
+        } catch (IOException | NullPointerException | ConfigError e) {
             LOGGER.error("Failed to create DataDictionary", e);
+            System.exit(1);
         }
 
         for (FixBean fixBean : settings.sessionsSettings) {
-            switch (fixBean.getBeginString()) {
-                case "FIX.4.0":
-                    for (File dataDict : dictionaries) {
-                        if (dataDict.getName().equals("FIX40.xml"))
-                            fixBean.setDataDictionary(dataDict.getAbsolutePath());
-                    }
-                    break;
-                case "FIX.4.1":
-                    for (File dataDict : dictionaries) {
-                        if (dataDict.getName().equals("FIX41.xml"))
-                            fixBean.setDataDictionary(dataDict.getAbsolutePath());
-                    }
-                    break;
-                case "FIX.4.2":
-                    for (File dataDict : dictionaries) {
-                        if (dataDict.getName().equals("FIX42.xml"))
-                            fixBean.setDataDictionary(dataDict.getAbsolutePath());
-                    }
-                    break;
-                case "FIX.4.3":
-                    for (File dataDict : dictionaries) {
-                        if (dataDict.getName().equals("FIX43.xml"))
-                            fixBean.setDataDictionary(dataDict.getAbsolutePath());
-                    }
-                    break;
-                case "FIX.4.4":
-                    for (File dataDict : dictionaries) {
-                        if (dataDict.getName().equals("FIX44.xml"))
-                            fixBean.setDataDictionary(dataDict.getAbsolutePath());
-                    }
-                    break;
-                case "FIX.5.0":
-                    for (File dataDict : dictionaries) {
-                        if (dataDict.getName().equals("FIX50.xml"))
-                            fixBean.setDataDictionary(dataDict.getAbsolutePath());
-                    }
-                    break;
+            for (File dataDict : dictionaries) {
+                if (dataDict.getName().equals(fixBean.getBeginString() + ".xml"))
+                    fixBean.setDataDictionary(dataDict.getAbsolutePath());
+            }
+            if (fixBean.getDataDictionary() == null || fixBean.getDataDictionary().equals("")) {
+                throw new NullPointerException("Data Dictionary does not set");
             }
         }
 
@@ -153,14 +130,22 @@ public class Main {
         MessageRouter<MessageGroupBatch> messageRouter = factory.getMessageRouterMessageGroupBatch();
         GrpcRouter grpcRouter = factory.getGrpcRouter();
 
-        run(settings, messageRouter, eventRouter, grpcRouter, resources);
+        try {
+            run(settings, messageRouter, eventRouter, grpcRouter, resources);
+        } catch (IOException e) {
+            LOGGER.error("Failed to create config file", e);
+            System.exit(1);
+        } catch (ConfigError e) {
+            LOGGER.error("Failed to load file with session settings", e);
+            System.exit(1);
+        }
 
     }
 
     public static void run(Settings settings, MessageRouter<MessageGroupBatch> messageRouter, MessageRouter<EventBatch> eventRouter,
-                           GrpcRouter grpcRouter, Deque<Resources> resources) throws ConfigError {
+                           GrpcRouter grpcRouter, Deque<Resources> resources) throws IOException, ConfigError {
 
-        File configFile = FixBeanUtil.createConfig(settings.sessionsSettings);
+        File configFile = FixBeanUtil.createConfig(settings);
 
         StringBuilder sb = new StringBuilder();
         Map<SessionID, ConnectionID> connections = new HashMap<>();
@@ -171,14 +156,14 @@ public class Main {
                     fixBean.getSenderSubID(), fixBean.getSenderLocationID(), fixBean.getTargetCompID(),
                     fixBean.getTargetSubID(), fixBean.getTargetLocationID(), fixBean.getSessionQualifier());
 
-            String sessionAlias = settings.sessionsSettings.get(i).getSessionAlias();
+            String sessionAlias = fixBean.getSessionAlias();
             connections.put(sessionID, ConnectionID.newBuilder().setSessionAlias(sessionAlias).build());
             sb.append(sessionAlias);
             if (i < settings.sessionsSettings.size() - 1) sb.append(":");
         }
 
         Event curEvent = MessageRouterUtils.storeEvent(eventRouter, Event.start(), null);
-        curEvent.name("FIX client " + sb.toString() + Instant.now());
+        curEvent.name("FIX client " + sb + Instant.now());
         curEvent.type("Microservice");
         String rootEventId = curEvent.getId();
 
@@ -196,13 +181,16 @@ public class Main {
             groupBatch.getGroupsList().forEach((group) -> {
                 try {
                     if (group.getMessagesCount() != 1) {
-                        LOGGER.error("Message group contains more than 1 message", new IllegalArgumentException("Message group contains more than 1 message"));
+                        if (LOGGER.isErrorEnabled()) {
+                            LOGGER.error("Message group contains more than 1 message {} ", com.exactpro.th2.common.message.MessageUtils.toJson(group));
+                        }
                     }
                     AnyMessage message = group.getMessagesList().get(0);
                     if (!message.hasRawMessage()) {
-                        LOGGER.error("Message in the group is not a raw message", new IllegalArgumentException("Message in the group is not a raw message"));
+                        if (LOGGER.isErrorEnabled()) {
+                            LOGGER.error("Message in the group is not a raw message {} ", com.exactpro.th2.common.message.MessageUtils.toJson(message));
+                        }
                     }
-
                     String strMessage = MessageUtil.rawToString(message);
                     SessionID sessionID = MessageUtil.getSessionID(strMessage);
                     Session session = Session.lookupSession(sessionID);
@@ -217,9 +205,9 @@ public class Main {
         };
 
         try {
-            SubscriberMonitor monitor = messageRouter.subscribe(listener, INPUT_QUEUE_ATTRIBUTE);
-            if (monitor == null) throw new NullPointerException();
+            SubscriberMonitor monitor = Objects.requireNonNull(messageRouter.subscribe(listener, INPUT_QUEUE_ATTRIBUTE), "Subscriber monitor must not be null.");
             resources.add(new Resources("raw-monitor", monitor::unsubscribe));
+
         } catch (Exception e) {
             throw new IllegalStateException("Failed to subscribe to input queue", e);
         }
@@ -250,7 +238,7 @@ public class Main {
 
     }
 
-    public static class Settings extends FixBean { //for what we extends on FixBean?
+    public static class Settings extends FixBean {
         boolean grpcStartControl = false;
         boolean autoStart = true;
         int autoStopAfter = 0;
@@ -281,7 +269,9 @@ public class Main {
         }
 
         public void setAutoStopAfter(int autoStopAfter) {
-            if (autoStopAfter >= 0) this.autoStopAfter = autoStopAfter;
+            if (autoStopAfter < 0)
+                throw new IllegalArgumentException("Timer for automatically stopping the client cannot be negative");
+            this.autoStopAfter = autoStopAfter;
         }
 
         public List<FixBean> getSessionsSettings() {
@@ -290,12 +280,13 @@ public class Main {
 
         @Override
         public String toString() {
-            return "Settings{" +
-                    "grpcStartControl=" + grpcStartControl +
-                    ", autoStart=" + autoStart +
-                    ", autoStopAfter=" + autoStopAfter +
-                    ", sessionsSettings=" + sessionsSettings +
-                    '}';
+
+            return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE)
+                    .append("grpcStartControl", grpcStartControl)
+                    .append("autoStart", autoStart)
+                    .append("autoStopAfter", autoStopAfter)
+                    .append("sessionsSettings", sessionsSettings)
+                    .toString();
         }
     }
 

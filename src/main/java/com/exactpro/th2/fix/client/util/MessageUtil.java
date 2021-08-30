@@ -38,40 +38,26 @@ public class MessageUtil {
 
     public static SessionID getSessionID(String message) {
 
-        String senderSubID = "";
-        String senderLocationID = "";
-        String targetSubID = "";
-        String targetLocationID = "";
         String sessionQualifier = "";
+        return new SessionID(message.substring(2, message.indexOf('\u0001')),
+                getTagValue(message, 49), getTagValue(message, 50),
+                getTagValue(message, 142), getTagValue(message, 56),
+                getTagValue(message, 57), getTagValue(message, 143), sessionQualifier);
+    }
+
+    private static String getTagValue(String message, int tagValue) {
 
         char soh = '\u0001'; //quickfix tags delimiter
-        String subStringSenderCompId = soh + "49=";
-        String subStringTargetCompId = soh + "56=";
-        String subStringSenderSubId = soh + "50=";
-        String subStringSenderLocationId = soh + "142=";
-        String subStringTargetSubId = soh + "57=";
-        String subStringTargetLocationId = soh + "143=";
-
-        int indexOfSenderCompId = message.indexOf(subStringSenderCompId) + 4;
-        int indexOfTargetCompId = message.indexOf(subStringTargetCompId) + 4;
-        int indexOfSenderSubId = message.indexOf(subStringSenderSubId) + 4;
-        int indexOfSenderLocationID = message.indexOf(subStringSenderLocationId) + 4;
-        int indexOfTargetSubID = message.indexOf(subStringTargetSubId) + 4;
-        int indexOfTargetLocationID = message.indexOf(subStringTargetLocationId) + 4;
-
-        String beginString = message.substring(2, message.indexOf(soh));
-        String senderCompId = message.substring(indexOfSenderCompId, message.indexOf(soh, indexOfSenderCompId));
-        String targetCompId = message.substring(indexOfTargetCompId, message.indexOf(soh, indexOfTargetCompId));
-        if (indexOfSenderSubId != 3)
-            senderSubID = message.substring(indexOfSenderSubId, message.indexOf(message.indexOf(soh, indexOfSenderSubId)));
-        if (indexOfSenderLocationID != 3)
-            senderLocationID = message.substring(indexOfSenderLocationID, message.indexOf(message.indexOf(soh, indexOfSenderLocationID)));
-        if (indexOfTargetSubID != 3)
-            targetSubID = message.substring(indexOfTargetSubID, message.indexOf(message.indexOf(soh, indexOfTargetSubID)));
-        if (indexOfTargetLocationID != 3)
-            targetLocationID = message.substring(indexOfTargetLocationID, message.indexOf(message.indexOf(soh, indexOfTargetLocationID)));
-
-        return new SessionID(beginString, senderCompId, senderSubID, senderLocationID, targetCompId, targetSubID, targetLocationID, sessionQualifier);
+        String result;
+        try {
+            String subStringId = soh + "" + tagValue + "=";
+            int indexOfSubString = message.indexOf(subStringId) + subStringId.length();
+            if (indexOfSubString == subStringId.length() - 1) return null;
+            result = message.substring(indexOfSubString, message.indexOf(soh, indexOfSubString));
+        } catch (Exception e) {
+            return null;
+        }
+        return result;
     }
 
     public static String rawToString(AnyMessage message) {

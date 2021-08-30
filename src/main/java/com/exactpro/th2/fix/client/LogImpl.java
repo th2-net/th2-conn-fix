@@ -21,6 +21,8 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class LogImpl implements Log {
 
+    private static final String ERROR_MSG = "Failed to send message for sessionAlias: ";
+
     private final Logger LOGGER = LoggerFactory.getLogger(LogImpl.class);
 
     private final Log log;
@@ -28,6 +30,7 @@ public class LogImpl implements Log {
     private final MessageRouter<EventBatch> eventRouter;
     private final ConnectionID connectionID;
     private final String rootEventId;
+    private final String sessionAlias;
     private final Supplier<Long> inputSeq = createSequence();
     private final Supplier<Long> outputSeq = createSequence();
 
@@ -38,6 +41,7 @@ public class LogImpl implements Log {
         this.eventRouter = eventRouter;
         this.connectionID = connectionID;
         this.rootEventId = rootEventId;
+        this.sessionAlias = connectionID.getSessionAlias();
     }
 
 
@@ -53,7 +57,7 @@ public class LogImpl implements Log {
         try {
             onMessage(message, Direction.FIRST);
         } catch (Exception e) {
-            sendError(connectionID.getSessionAlias(), e);
+            sendError(sessionAlias, e);
         }
     }
 
@@ -64,13 +68,13 @@ public class LogImpl implements Log {
         try {
             onMessage(message, Direction.SECOND);
         } catch (Exception e) {
-            sendError(connectionID.getSessionAlias(), e);
+            sendError(sessionAlias, e);
         }
     }
 
     private void sendError(String sessionAlias, Exception e) {
-        LOGGER.error("Failed to send message for sessionAlias: {}", sessionAlias, e);
-        onErrorEvent("Failed to send message for sessionAlias: " + sessionAlias, e);
+        LOGGER.error(ERROR_MSG + sessionAlias, e);
+        onErrorEvent(ERROR_MSG + sessionAlias, e);
     }
 
     @Override

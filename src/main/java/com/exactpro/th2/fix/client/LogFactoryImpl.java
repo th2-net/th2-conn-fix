@@ -9,6 +9,7 @@ import quickfix.LogFactory;
 import quickfix.SessionID;
 
 import java.util.Map;
+import java.util.Objects;
 
 public class LogFactoryImpl implements LogFactory {
 
@@ -29,7 +30,7 @@ public class LogFactoryImpl implements LogFactory {
 
     @Override
     public Log create(SessionID sessionID) {
-        return new LogImpl(logFactory.create(sessionID), messageRouter, eventBatch, connections.get(sessionID), rootEventId);
+        return new LogImpl(logFactory.create(sessionID), messageRouter, eventBatch, Objects.requireNonNull(connections.get(sessionID)), rootEventId);
     }
 
 }

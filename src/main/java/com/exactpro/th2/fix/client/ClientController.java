@@ -2,8 +2,6 @@ package com.exactpro.th2.fix.client;
 
 
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
@@ -13,11 +11,10 @@ import java.util.concurrent.ScheduledExecutorService;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 class ClientController implements AutoCloseable {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ClientController.class);
 
     private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
     private Future<?> stopFuture = CompletableFuture.completedFuture(null);
-    private FixClient client = null;
+    private final FixClient client;
     boolean isRunning;
 
     ClientController(@NotNull FixClient client) {
@@ -25,7 +22,7 @@ class ClientController implements AutoCloseable {
             this.client = client;
             isRunning = client.isRunning();
         } else {
-            LOGGER.error("Fix Client cannot be null!", new NullPointerException("Fix Client cannot be null!"));
+            throw new NullPointerException("Fix Client must not be null!");
         }
     }
 

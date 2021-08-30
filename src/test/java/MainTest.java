@@ -32,6 +32,7 @@ import quickfix.field.Symbol;
 import quickfix.field.TargetCompID;
 import quickfix.field.TransactTime;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -56,10 +57,15 @@ public class MainTest extends Main{
         Main.Settings settings = new Settings();
 
         FixBean fixBean = new FixBean();
+        fixBean.setSenderCompID("client");
+        fixBean.setTargetCompID("server");
+//        fixBean.setSenderSubID("sendSubId");
+//        fixBean.setTargetSubID("tarSubId");
         fixBean.setSessionAlias("FIX42ClientServer");
         FixBean fixBean1 = new FixBean();
 
         fixBean1.setSenderCompID("client2");
+        fixBean1.setTargetCompID("server");
         fixBean1.setSocketConnectPort(9878);
         fixBean1.setSessionAlias("FIX42Client2Server");
 
@@ -77,7 +83,7 @@ public class MainTest extends Main{
         Thread thread = new Thread(() -> {
             try {
                 Main.run(settings, messageRouter, eventRouter, grpcRouter, resources);
-            } catch (ConfigError configError) {
+            } catch (ConfigError | IOException configError) {
                 configError.printStackTrace();
             }
         });
@@ -89,6 +95,8 @@ public class MainTest extends Main{
         header.setField(new MsgType("D"));
         header.setField(new SenderCompID("client"));
         header.setField(new TargetCompID("server"));
+//        header.setField(new SenderSubID("sendSubId"));
+//        header.setField(new TargetSubID("tarSubId"));
 
         quickfix.fix42.NewOrderSingle fixMessage2 = new quickfix.fix42.NewOrderSingle(
                 new ClOrdID("ClOrdID"),
@@ -133,7 +141,7 @@ public class MainTest extends Main{
 
         Thread.sleep(10000);
 
-        for (MessageGroupBatch item : messageRouter.Messages) {
+        for (MessageGroupBatch item : messageRouter.messages) {
             System.out.println(item);
         }
 
@@ -151,11 +159,11 @@ public class MainTest extends Main{
 
     public static class MyMessageRouter implements MessageRouter<MessageGroupBatch> {
 
-        List<MessageListener> Listeners = new ArrayList<>();
-        List<MessageGroupBatch> Messages = new ArrayList<>();
+        List<MessageListener> listeners = new ArrayList<>();
+        List<MessageGroupBatch> messages = new ArrayList<>();
 
         public void sendToSubscriber(String tag, MessageGroupBatch message) throws Exception {
-            Listeners.get(0).handler(tag, message);
+            listeners.get(0).handler(tag, message);
         }
 
         @Override
@@ -171,23 +179,23 @@ public class MainTest extends Main{
         @Override
         public void send(MessageGroupBatch message) {
 
-            Messages.add(message);
+            messages.add(message);
         }
 
         @Override
         public void send(MessageGroupBatch message, String... queueAttr){
-            Messages.add(message);
+            messages.add(message);
         }
 
         @Override
         public void sendAll(MessageGroupBatch message, String... queueAttr){
-            Messages.add(message);
+            messages.add(message);
         }
 
         @Override
         public @Nullable SubscriberMonitor subscribe(MessageListener callback, String... queueAttr) {
 
-            Listeners.add(callback);
+            listeners.add(callback);
 
             return () -> {
             };
@@ -195,7 +203,7 @@ public class MainTest extends Main{
 
         @Override
         public @Nullable SubscriberMonitor subscribeAll(MessageListener callback) {
-            Listeners.add(callback);
+            listeners.add(callback);
 
             return () -> {
             };
@@ -203,7 +211,7 @@ public class MainTest extends Main{
 
         @Override
         public @Nullable SubscriberMonitor subscribeAll(MessageListener callback, String... queueAttr) {
-            Listeners.add(callback);
+            listeners.add(callback);
 
             return () -> {
             };

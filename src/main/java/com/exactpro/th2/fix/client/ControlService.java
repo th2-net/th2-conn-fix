@@ -6,21 +6,19 @@ import com.exactpro.th2.conn.grpc.StartRequest;
 import com.exactpro.th2.conn.grpc.StopRequest;
 import io.grpc.stub.StreamObserver;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static com.exactpro.th2.conn.grpc.Response.Status.FAILURE;
 import static com.exactpro.th2.conn.grpc.Response.Status.SUCCESS;
 
 class ControlService extends ConnImplBase {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ControlService.class);
-    private ClientController controller;
+
+    private final ClientController controller;
 
     public ControlService(@NotNull ClientController controller) {
         if (controller != null) {
             this.controller = controller;
         } else {
-            LOGGER.error("Client Controller cannot be null!", new NullPointerException("Client Controller cannot be null!"));
+            throw new NullPointerException("Client Controller must not be null!");
         }
     }
 
@@ -40,7 +38,7 @@ class ControlService extends ConnImplBase {
             }
             observer.onCompleted();
         } catch (RuntimeException e) {
-            observer.onError(e);
+            observer.onError(io.grpc.Status.INTERNAL.withCause(e).withDescription(e.getMessage()).asRuntimeException());
         }
     }
 
@@ -57,7 +55,7 @@ class ControlService extends ConnImplBase {
             }
             observer.onCompleted();
         } catch (Exception e) {
-            observer.onError(e);
+            observer.onError(io.grpc.Status.INTERNAL.withCause(e).withDescription(e.getMessage()).asRuntimeException());
         }
     }
 
