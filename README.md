@@ -16,11 +16,8 @@
      | TargetCompID	| Counterparty's compID as associated with this FIX session	| case-sensitive alpha-numeric string	| | 
      | TargetSubID	| (Optional) Counterparty's subID as associated with this FIX session	| case-sensitive alpha-numeric string	|| 
      | TargetLocationID	| (Optional) Counterparty's locationID as associated with this FIX session |	case-sensitive alpha-numeric string	 | | 
-     | SessionQualifier |	Additional qualifier to disambiguate otherwise identical sessions. This can only be used with initiator sessions. Note: See Special notes for Oracle.	|case-sensitive alpha-numeric string	||
      | DefaultApplVerID |	Required only for FIXT 1.1 (and newer). Ignored for earlier transport versions. Specifies the default application version ID for the session. This can either be the ApplVerID enum (see the ApplVerID field) the beginString for the default version.	| String. Examples:	FIX 5.0 over FIXT 1.1 DefaultApplVerID=7 # BeginString: FIX 5.0 over FIXT 1.1	DefaultApplVerID=FIX.5.0	# BeginString: FIX 4.2 over FIXT 1.1	DefaultApplVerID=FIX.4.2	|No default. Required for FIXT 1.1 |
      | ConnectionType|	Defines if session will act as an acceptor or an initiator|	initiator	/ acceptor|	|
-     | UseDataDictionary |	Tell session whether or not to expect a data dictionary. You should always use a DataDictionary if you are using repeating groups.|	Y/N	| Y |
-     | DataDictionary	| XML definition file for validating incoming FIX messages. If no DataDictionary is supplied, only basic message validation will be done This setting should only be used with FIX transport versions old than FIXT 1.1. See TransportDataDictionary and ApplicationDataDictionary for FIXT 1.1 settings. | Valid XML data dictionary file, QuickFIX/J comes with the following defaults in the etc directory: FIXT11.xml, FIX50.xml, FIX44.xml, FIX43.xml, FIX42.xml, FIX41.xml, FIX40.xml. |	If DataDictionary is not specified and UserDataDictionary=Y, then QuickFIX/J will look for a default dictionary based on the session's BeginString (e.g., FIX.4.2 = FIX42.xml). The DataDictionary file search strategy is to use a URL, then the file system, and then the thread context classloader (if any), and then the DataDictionary instance's classloader. Default data dictionary files are included in the QuickFIX/J jar file. |
      | ValidateUserDefinedFields |	If set to N, user defined fields (field with tag >= 5000) will not be rejected if they are not defined in the data dictionary, or are present in messages they do not belong to.	| Y / N |	Y |
      | ValidateIncomingMessage	| Allow to bypass the message validation (against the dictionary).	| Y / N	| Y |
      | CheckLatency	| If set to Y, messages must be received from the counterparty within a defined number of seconds (see MaxLatency). It is useful to turn this off if a system uses localtime for its timestamps instead of GMT.	| Y / N | 	Y|
@@ -42,9 +39,9 @@
      | ResetOnDisconnect	|Determines if sequence numbers should be reset to 1 after an abnormal termination.	| Y / N | N |
      | ResetOnError	| Session setting for doing an automatic reset when an error occurs. A reset means disconnect, sequence numbers reset, store cleaned and reconnect, as for a daily reset.	| Y / N |	N |
      | DisconnectOnError	| Session setting for doing an automatic disconnect when an error occurs.	| Y / N	| N |    
-   
-   
-`sessionSettings` also contains a `SessionAlias` - session alias for incoming/outgoing th2 messages.
+     |SessionAlias| session alias for incoming/outgoing th2 messages. | case-sensitive alpha-numeric string | |
+	
+We can also put these settings in the root directory to set the default session settings.
 		
 
 
@@ -62,3 +59,76 @@ This service receives messages that will be sent via MQ as `MessageGroups`, cont
 
 **Outputs**
 Incoming and outgoing messages are sent via MQ as `MessageGroups`, containing a single `RawMessage` with a message body.
+	
+## Deployment via infra-mgr
+	
+	Here's an example of infra-mgr config required to deploy this service.  
+	  
+	  
+```yaml
+apiVersion: th2.exactpro.com/v1
+kind: Th2Box
+metadata:
+  name: fix-client
+spec:		
+  image-name: ghcr.io/th2-net/ghcr.io/th2-net/th2-conn-fix-client
+  image-version: 0.0.1
+  custom-config:
+    grpcStartControl: true
+    autoStart: true
+    autoStopAfter: 300
+    fileStorePath: storage/messages/
+    fileLogPath: outgoing
+    connectionType: initiator
+    reconnectInterval: 60
+    heartBtInt: 30
+    useDataDictionary: Y
+    nonStopSession: Y
+    beginString: FIX.4.2
+    socketConnectHost: localhost
+    socketConnectPort: 9877
+    sessionsSettings:
+      senderCompID: client
+      senderSubID: clientSubId
+      senderLocationID: clientLocationId
+      targetCompID: server
+      targetSubID: serverSubId
+      targetLocationID: serverLocationId
+      sessionAlias: client1
+    sessionsSettings:
+      senderCompID: client2
+      targetCompID: server
+      sessionAlias: client2
+  type: th2-conn
+  pins:
+    - name: to_send
+    connection-type: mq
+    attributes:
+      - subscribe
+      - send
+    - name: outgoing_messages
+    connection-type: mq
+    attributes:
+      - second
+      - publish
+      - raw
+    - name: incoming_messages
+    connection-type: mq
+    attributes:
+      - first
+      - publish
+      - raw
+  extended-settings:
+    service: 
+      enabled: false
+    resources:
+      limits:
+        memory: 200Mi
+        cpu: 600m
+      requests:
+        memory: 100Mi
+        cpu: 20m
+```
+	
+	
+	
