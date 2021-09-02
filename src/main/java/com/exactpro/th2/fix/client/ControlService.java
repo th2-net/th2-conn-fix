@@ -7,26 +7,25 @@ import com.exactpro.th2.conn.grpc.StopRequest;
 import io.grpc.stub.StreamObserver;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Objects;
+
 import static com.exactpro.th2.conn.grpc.Response.Status.FAILURE;
 import static com.exactpro.th2.conn.grpc.Response.Status.SUCCESS;
+import static io.grpc.Status.INTERNAL;
 
 class ControlService extends ConnImplBase {
 
     private final ClientController controller;
 
     public ControlService(@NotNull ClientController controller) {
-        if (controller != null) {
-            this.controller = controller;
-        } else {
-            throw new NullPointerException("Client Controller must not be null!");
-        }
+        this.controller = Objects.requireNonNull(controller, "Client Controller must not be null!");
     }
 
     @Override
     public synchronized void start(StartRequest request, StreamObserver<Response> observer) {
 
         try {
-            if (controller.isRunning) {
+            if (controller.isRunning()) {
                 observer.onNext(failure("Already running"));
             } else {
                 controller.start(request.getStopAfter());
@@ -38,7 +37,7 @@ class ControlService extends ConnImplBase {
             }
             observer.onCompleted();
         } catch (RuntimeException e) {
-            observer.onError(io.grpc.Status.INTERNAL.withCause(e).withDescription(e.getMessage()).asRuntimeException());
+            observer.onError(wrapException(e));
         }
     }
 
@@ -47,7 +46,7 @@ class ControlService extends ConnImplBase {
     public synchronized void stop(StopRequest request, StreamObserver<Response> observer) {
 
         try {
-            if (!controller.isRunning) {
+            if (!controller.isRunning()) {
                 observer.onNext(failure("Already stopped"));
             } else {
                 controller.stop();
@@ -55,10 +54,14 @@ class ControlService extends ConnImplBase {
             }
             observer.onCompleted();
         } catch (Exception e) {
-            observer.onError(io.grpc.Status.INTERNAL.withCause(e).withDescription(e.getMessage()).asRuntimeException());
+            observer.onError(wrapException(e));
         }
     }
 
+
+    private Throwable wrapException(Throwable e) {
+        return INTERNAL.withCause(e).withDescription(e.getMessage()).asRuntimeException();
+    }
 
     private Response success(String message) {
         return Response.newBuilder().setStatus(SUCCESS).setMessage(message).build();

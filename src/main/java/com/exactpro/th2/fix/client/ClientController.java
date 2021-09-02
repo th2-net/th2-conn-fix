@@ -3,6 +3,7 @@ package com.exactpro.th2.fix.client;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -15,19 +16,13 @@ class ClientController implements AutoCloseable {
     private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
     private Future<?> stopFuture = CompletableFuture.completedFuture(null);
     private final FixClient client;
-    boolean isRunning;
 
     ClientController(@NotNull FixClient client) {
-        if (client != null) {
-            this.client = client;
-            isRunning = client.isRunning();
-        } else {
-            throw new NullPointerException("Fix Client must not be null!");
-        }
+        this.client = Objects.requireNonNull(client, "Fix Client must not be null");
     }
 
     public synchronized void start(int stopAfter) {
-        if (!isRunning) {
+        if (!isRunning()) {
             client.start();
             if (stopAfter > 0) {
                 stopFuture = executor.schedule(client::stop, stopAfter, SECONDS);
@@ -36,7 +31,7 @@ class ClientController implements AutoCloseable {
     }
 
     public synchronized void stop() {
-        if (isRunning) {
+        if (isRunning()) {
             stopFuture.cancel(true);
             client.stop();
         }
@@ -46,6 +41,10 @@ class ClientController implements AutoCloseable {
     public synchronized void close() throws InterruptedException {
         executor.shutdown();
         if (!executor.awaitTermination(5, SECONDS)) executor.shutdownNow();
+    }
+
+    public boolean isRunning() {
+        return client.isRunning();
     }
 
 }

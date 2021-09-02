@@ -1,33 +1,49 @@
 package com.exactpro.th2.fix.client.fixBean;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
+import static com.exactpro.th2.fix.client.util.FixBeanUtil.addToConfig;
+
 public class FixBean {
 
-    protected String applicationID = "client";
+    @JsonProperty(required = true)
     protected String fileStorePath = "storage/messages/";
+    @JsonProperty(required = true)
     protected String fileLogPath = "outgoing";
+    @JsonIgnore
     protected String connectionType = "initiator";
+    @JsonProperty(required = true)
     protected long reconnectInterval = 60;
+    @JsonProperty(required = true)
     protected long heartBtInt = 30;
+    @JsonIgnore
     protected String useDataDictionary = "Y";
     protected String validateUserDefinedFields = "N";
     protected String validateIncomingMessage = "N";
     protected String refreshOnLogon = "Y";
+    @JsonProperty(required = true)
     protected String nonStopSession = "Y";
 
+    @JsonProperty(required = true)
     protected String beginString = "FIX.4.2";
+    @JsonProperty(required = true)
     protected String socketConnectHost = "localhost";
+    @JsonProperty(required = true)
     protected long socketConnectPort = 9877;
+    @JsonProperty(required = true)
     protected String senderCompID = null;
     protected String senderSubID = null;
     protected String senderLocationID = null;
+    @JsonProperty(required = true)
     protected String targetCompID = null;
     protected String targetSubID = null;
     protected String targetLocationID = null;
     protected String dataDictionary = null;
+    @JsonIgnore
     protected String sessionQualifier = null;
     protected String sessionAlias = null;
 
@@ -37,34 +53,26 @@ public class FixBean {
     public StringBuilder toConfig(String sectionName) {
         StringBuilder sb = new StringBuilder();
         sb.append("[").append(sectionName).append("]").append(System.lineSeparator());
-        sb.append("ApplicationID=").append(applicationID).append(System.lineSeparator());
-        sb.append("FileStorePath=").append(fileStorePath).append(System.lineSeparator());
-        sb.append("FileLogPath=").append(fileLogPath).append(System.lineSeparator());
-        sb.append("ConnectionType=").append(connectionType).append(System.lineSeparator());
-        sb.append("ReconnectInterval=").append(reconnectInterval).append(System.lineSeparator());
-        sb.append("NonStopSession=").append(nonStopSession).append(System.lineSeparator());
-        sb.append("HeartBtInt=").append(heartBtInt).append(System.lineSeparator());
-        sb.append("UseDataDictionary=").append(useDataDictionary).append(System.lineSeparator());
-        sb.append("ValidateUserDefinedFields=").append(validateUserDefinedFields).append(System.lineSeparator());
-        sb.append("ValidateIncomingMessage=").append(validateIncomingMessage).append(System.lineSeparator());
-        sb.append("RefreshOnLogon=").append(refreshOnLogon).append(System.lineSeparator());
-
-        if (beginString != null) sb.append("BeginString=").append(beginString).append(System.lineSeparator());
-        if (socketConnectHost != null)
-            sb.append("SocketConnectHost=").append(socketConnectHost).append(System.lineSeparator());
-        if (socketConnectPort != 0)
-            sb.append("SocketConnectPort=").append(socketConnectPort).append(System.lineSeparator());
-        if (senderCompID != null) sb.append("SenderCompID=").append(senderCompID).append(System.lineSeparator());
-        if (senderSubID != null) sb.append("SenderSubID=").append(senderSubID).append(System.lineSeparator());
-        if (senderLocationID != null)
-            sb.append("SenderLocationID=").append(senderLocationID).append(System.lineSeparator());
-        if (targetCompID != null) sb.append("TargetCompID=").append(targetCompID).append(System.lineSeparator());
-        if (targetSubID != null) sb.append("TargetSubID=").append(targetSubID).append(System.lineSeparator());
-        if (targetLocationID != null)
-            sb.append("TargetLocationID=").append(targetLocationID).append(System.lineSeparator());
-        if (dataDictionary != null)
-            sb.append("DataDictionary=").append(dataDictionary).append(System.lineSeparator());
-
+        addToConfig("FileStorePath", fileStorePath, sb);
+        addToConfig("FileLogPath", fileLogPath, sb);
+        addToConfig("ConnectionType", connectionType, sb);
+        addToConfig("ReconnectInterval", reconnectInterval, sb);
+        addToConfig("NonStopSession", nonStopSession, sb);
+        addToConfig("HeartBtInt", heartBtInt, sb);
+        addToConfig("UseDataDictionary", useDataDictionary, sb);
+        addToConfig("ValidateUserDefinedFields", validateUserDefinedFields, sb);
+        addToConfig("ValidateIncomingMessage", validateIncomingMessage, sb);
+        addToConfig("RefreshOnLogon", refreshOnLogon, sb);
+        addToConfig("BeginString", beginString, sb);
+        addToConfig("SocketConnectHost", socketConnectHost, sb);
+        addToConfig("SocketConnectPort", socketConnectPort, sb);
+        addToConfig("SenderCompID", senderCompID, sb);
+        addToConfig("SenderSubID", senderSubID, sb);
+        addToConfig("SenderLocationID", senderLocationID, sb);
+        addToConfig("TargetCompID", targetCompID, sb);
+        addToConfig("TargetSubID", targetSubID, sb);
+        addToConfig("TargetLocationID", targetLocationID, sb);
+        addToConfig("DataDictionary", dataDictionary, sb);
 
         return sb;
     }
@@ -72,7 +80,6 @@ public class FixBean {
     @Override
     public String toString() {
         return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE)
-                .append("ApplicationId", applicationID)
                 .append("FileStorePath", fileStorePath)
                 .append("FileLogPath", fileLogPath)
                 .append("ConnectionType", connectionType)
@@ -98,38 +105,162 @@ public class FixBean {
                 .toString();
     }
 
+    public void setConnectionType(String connectionType) {
+        if (connectionType == null || connectionType.equals("")) {
+            throw new IllegalArgumentException("connectionType must be only initiator.");
+        }
+        this.connectionType = connectionType;
+    }
+
+    public void setFileStorePath(String fileStorePath) {
+        if (fileStorePath == null || fileStorePath.equals("")) {
+            throw new IllegalArgumentException("fileStorePath must not be null or blank.");
+        }
+        this.fileStorePath = fileStorePath;
+    }
+
+    public void setFileLogPath(String fileLogPath) {
+        if (fileLogPath == null || fileLogPath.equals("")) {
+            throw new IllegalArgumentException("FileLogPath must not be null or blank.");
+        }
+        this.fileLogPath = fileLogPath;
+    }
+
+    public void setReconnectInterval(long reconnectInterval) {
+        if (reconnectInterval < 0) {
+            throw new IllegalArgumentException("Reconnect interval must not be negative.");
+        }
+        this.reconnectInterval = reconnectInterval;
+    }
+
+    public void setHeartBtInt(long heartBtInt) {
+        if (heartBtInt < 0) {
+            throw new IllegalArgumentException("heartBtInt must not be negative.");
+        }
+        this.heartBtInt = heartBtInt;
+    }
+
+    public void setUseDataDictionary(String useDataDictionary) {
+        if (useDataDictionary == null || useDataDictionary.equals("")) {
+            throw new IllegalArgumentException("UseDataDictionary must be \"Y\" or \"N\".");
+        }
+        this.useDataDictionary = useDataDictionary;
+    }
+
+    public void setValidateUserDefinedFields(String validateUserDefinedFields) {
+        if (validateUserDefinedFields == null || validateUserDefinedFields.equals("")) {
+            throw new IllegalArgumentException("validateUserDefinedFields must be \"Y\" or \"N\".");
+        }
+        this.validateUserDefinedFields = validateUserDefinedFields;
+    }
+
+    public void setValidateIncomingMessage(String validateIncomingMessage) {
+        if (validateIncomingMessage == null || validateIncomingMessage.equals("")) {
+            throw new IllegalArgumentException("validateIncomingMessage must be \"Y\" or \"N\".");
+        }
+        this.validateIncomingMessage = validateIncomingMessage;
+    }
+
+    public void setRefreshOnLogon(String refreshOnLogon) {
+        if (refreshOnLogon == null || refreshOnLogon.equals("")) {
+            throw new IllegalArgumentException("refreshOnLogon must be \"Y\" or \"N\".");
+        }
+        this.refreshOnLogon = refreshOnLogon;
+    }
+
+    public void setNonStopSession(String nonStopSession) {
+        if (nonStopSession == null || nonStopSession.equals("")) {
+            throw new IllegalArgumentException("nonStopSession must be \"Y\" or \"N\".");
+        }
+        this.nonStopSession = nonStopSession;
+    }
+
+    public void setBeginString(String beginString) {
+        if (beginString == null || beginString.equals("")) {
+            throw new IllegalArgumentException("beginString must not be null or blank.");
+        }
+        this.beginString = beginString;
+    }
+
+    public void setSocketConnectHost(String socketConnectHost) {
+        if (socketConnectHost == null || socketConnectHost.equals("")) {
+            throw new IllegalArgumentException("socketConnectHost must not be null or blank.");
+        }
+        this.socketConnectHost = socketConnectHost;
+    }
+
     public void setTargetCompID(String targetCompID) {
-        if (targetCompID == null || targetCompID.equals(""))
+        if (targetCompID == null || targetCompID.equals("")) {
             throw new IllegalArgumentException("TargetCompID must not be null or blank.");
+        }
         this.targetCompID = targetCompID;
     }
 
     public void setSocketConnectPort(long socketConnectPort) {
-        if (socketConnectPort == 0) throw new IllegalArgumentException("SocketConnectPort must not be null or blank.");
+        if (socketConnectPort < 1024 || socketConnectPort > 65535) {
+            throw new IllegalArgumentException("SocketConnectPort must be in range from 1024 to 65535.");
+        }
         this.socketConnectPort = socketConnectPort;
     }
 
-
     public void setSenderCompID(String senderCompID) {
-        if (senderCompID == null || senderCompID.equals(""))
+        if (senderCompID == null || senderCompID.equals("")) {
             throw new IllegalArgumentException("SenderCompId must not be null or blank.");
+        }
         this.senderCompID = senderCompID;
     }
 
     public void setDataDictionary(String dataDictionary) {
-        if (dataDictionary == null || dataDictionary.equals(""))
+        if (dataDictionary == null || dataDictionary.equals("")) {
             throw new IllegalArgumentException("DataDictionary must not be null or blank.");
+        }
         this.dataDictionary = dataDictionary;
+    }
+
+    public void setSessionAlias(String sessionAlias) {
+        if (sessionAlias == null || sessionAlias.equals("")) {
+            throw new IllegalArgumentException("SessionAlias must not be null or blank.");
+        }
+        this.sessionAlias = sessionAlias;
+    }
+
+    public void setSessionQualifier(String sessionQualifier) {
+        if (sessionQualifier == null || sessionQualifier.equals("")) {
+            throw new IllegalArgumentException("SessionQualifier must not be null or blank.");
+        }
+        this.sessionQualifier = sessionQualifier;
+    }
+
+    public void setSenderSubID(String senderSubID) {
+        if (senderSubID == null || senderSubID.equals("")) {
+            throw new IllegalArgumentException("SenderSubID must not be null or blank.");
+        }
+        this.senderSubID = senderSubID;
+    }
+
+    public void setSenderLocationID(String senderLocationID) {
+        if (senderLocationID == null || senderLocationID.equals("")) {
+            throw new IllegalArgumentException("SenderLocationID must not be null or blank.");
+        }
+        this.senderLocationID = senderLocationID;
+    }
+
+    public void setTargetSubID(String targetSubID) {
+        if (targetSubID == null || targetSubID.equals("")) {
+            throw new IllegalArgumentException("TargetSubID must not be null or blank.");
+        }
+        this.targetSubID = targetSubID;
+    }
+
+    public void setTargetLocationID(String targetLocationID) {
+        if (targetLocationID == null || targetLocationID.equals("")) {
+            throw new IllegalArgumentException("TargetLocationID must not be null or blank.");
+        }
+        this.targetLocationID = targetLocationID;
     }
 
     public String getSessionAlias() {
         return sessionAlias;
-    }
-
-    public void setSessionAlias(String sessionAlias) {
-        if (sessionAlias == null || sessionAlias.equals(""))
-            throw new IllegalArgumentException("SessionAlias must not be null or blank.");
-        this.sessionAlias = sessionAlias;
     }
 
     public String getSenderSubID() {
@@ -140,46 +271,16 @@ public class FixBean {
         return sessionQualifier;
     }
 
-    public void setSessionQualifier(String sessionQualifier) {
-        if (sessionQualifier == null || sessionQualifier.equals(""))
-            throw new IllegalArgumentException("SessionQualifier must not be null or blank.");
-        this.sessionQualifier = sessionQualifier;
-    }
-
-    public void setSenderSubID(String senderSubID) {
-        if (senderSubID == null || senderSubID.equals(""))
-            throw new IllegalArgumentException("SenderSubID must not be null or blank.");
-        this.senderSubID = senderSubID;
-    }
-
     public String getSenderLocationID() {
         return senderLocationID;
-    }
-
-    public void setSenderLocationID(String senderLocationID) {
-        if (senderLocationID == null || senderLocationID.equals(""))
-            throw new IllegalArgumentException("SenderLocationID must not be null or blank.");
-        this.senderLocationID = senderLocationID;
     }
 
     public String getTargetSubID() {
         return targetSubID;
     }
 
-    public void setTargetSubID(String targetSubID) {
-        if (targetSubID == null || targetSubID.equals(""))
-            throw new IllegalArgumentException("TargetSubID must not be null or blank.");
-        this.targetSubID = targetSubID;
-    }
-
     public String getTargetLocationID() {
         return targetLocationID;
-    }
-
-    public void setTargetLocationID(String targetLocationID) {
-        if (targetLocationID == null || targetLocationID.equals(""))
-            throw new IllegalArgumentException("TargetLocationID must not be null or blank.");
-        this.targetLocationID = targetLocationID;
     }
 
     public String getDataDictionary() {
@@ -212,10 +313,6 @@ public class FixBean {
 
     public long getSocketConnectPort() {
         return socketConnectPort;
-    }
-
-    public String getApplicationID() {
-        return applicationID;
     }
 
     public String getFileStorePath() {

@@ -1,8 +1,11 @@
 import com.exactpro.th2.common.grpc.AnyMessage;
+import com.exactpro.th2.common.grpc.ConnectionID;
 import com.exactpro.th2.common.grpc.EventBatch;
 import com.exactpro.th2.common.grpc.MessageGroup;
 import com.exactpro.th2.common.grpc.MessageGroupBatch;
+import com.exactpro.th2.common.grpc.MessageID;
 import com.exactpro.th2.common.grpc.RawMessage;
+import com.exactpro.th2.common.grpc.RawMessageMetadata;
 import com.exactpro.th2.common.schema.grpc.router.GrpcRouter;
 import com.exactpro.th2.common.schema.message.MessageListener;
 import com.exactpro.th2.common.schema.message.MessageRouter;
@@ -11,15 +14,15 @@ import com.exactpro.th2.common.schema.message.SubscriberMonitor;
 import com.exactpro.th2.common.schema.message.configuration.MessageRouterConfiguration;
 import com.exactpro.th2.common.schema.message.impl.rabbitmq.connection.ConnectionManager;
 import com.exactpro.th2.fix.client.Main;
+import com.exactpro.th2.fix.client.exceptions.CreatingConfigFileException;
 import com.exactpro.th2.fix.client.fixBean.FixBean;
-import com.exactpro.th2.fix.client.util.MessageUtil;
 import com.google.protobuf.ByteString;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
 import quickfix.ConfigError;
+import quickfix.IncorrectDataFormat;
 import quickfix.Message;
 import quickfix.field.BeginString;
 import quickfix.field.ClOrdID;
@@ -27,12 +30,13 @@ import quickfix.field.HandlInst;
 import quickfix.field.MsgType;
 import quickfix.field.OrdType;
 import quickfix.field.SenderCompID;
+import quickfix.field.SenderSubID;
 import quickfix.field.Side;
 import quickfix.field.Symbol;
 import quickfix.field.TargetCompID;
+import quickfix.field.TargetSubID;
 import quickfix.field.TransactTime;
 
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,14 +45,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 
-public class MainTest extends Main{
-
-
-    @Test
-    public void getSessionTest(){
-        String message = "8=FIX.4.2\u00019=105\u000135=8\u000134=1266\u000143=Y\u000149=server\u000152=20210824-08:00:11.858\u000156=client\u0001122=20210823-10:36:47.517\u000120=0\u000139=0\u0001150=0\u000110=112\u0001";
-        Assert.assertEquals("FIX.4.2:server->client", MessageUtil.getSessionID(message).toString());
-    }
+public class MainTest extends Main {
 
 
     @Test
@@ -59,8 +56,8 @@ public class MainTest extends Main{
         FixBean fixBean = new FixBean();
         fixBean.setSenderCompID("client");
         fixBean.setTargetCompID("server");
-//        fixBean.setSenderSubID("sendSubId");
-//        fixBean.setTargetSubID("tarSubId");
+        fixBean.setSenderSubID("sendSubId");
+        fixBean.setTargetSubID("tarSubId");
         fixBean.setSessionAlias("FIX42ClientServer");
         FixBean fixBean1 = new FixBean();
 
@@ -83,7 +80,7 @@ public class MainTest extends Main{
         Thread thread = new Thread(() -> {
             try {
                 Main.run(settings, messageRouter, eventRouter, grpcRouter, resources);
-            } catch (ConfigError | IOException configError) {
+            } catch (ConfigError | CreatingConfigFileException | IncorrectDataFormat configError) {
                 configError.printStackTrace();
             }
         });
@@ -95,8 +92,8 @@ public class MainTest extends Main{
         header.setField(new MsgType("D"));
         header.setField(new SenderCompID("client"));
         header.setField(new TargetCompID("server"));
-//        header.setField(new SenderSubID("sendSubId"));
-//        header.setField(new TargetSubID("tarSubId"));
+        header.setField(new SenderSubID("sendSubId"));
+        header.setField(new TargetSubID("tarSubId"));
 
         quickfix.fix42.NewOrderSingle fixMessage2 = new quickfix.fix42.NewOrderSingle(
                 new ClOrdID("ClOrdID"),
@@ -116,6 +113,16 @@ public class MainTest extends Main{
                                                 .copyFrom(fixMessage
                                                         .toString()
                                                         .getBytes()))
+                                        .setMetadata(RawMessageMetadata
+                                                .newBuilder()
+                                                .setId(MessageID
+                                                        .newBuilder()
+                                                        .setConnectionId(ConnectionID
+                                                                .newBuilder()
+                                                                .setSessionAlias("FIX42ClientServer")
+                                                                .build())
+                                                        .build())
+                                                .build())
                                         .build())
                                 .build())
                         .build())
@@ -129,6 +136,16 @@ public class MainTest extends Main{
                                                 .copyFrom(fixMessage2
                                                         .toString()
                                                         .getBytes()))
+                                        .setMetadata(RawMessageMetadata
+                                                .newBuilder()
+                                                .setId(MessageID
+                                                        .newBuilder()
+                                                        .setConnectionId(ConnectionID
+                                                                .newBuilder()
+                                                                .setSessionAlias("FIX42Client2Server")
+                                                                .build())
+                                                        .build())
+                                                .build())
                                         .build())
                                 .build())
                         .build())
@@ -183,12 +200,12 @@ public class MainTest extends Main{
         }
 
         @Override
-        public void send(MessageGroupBatch message, String... queueAttr){
+        public void send(MessageGroupBatch message, String... queueAttr) {
             messages.add(message);
         }
 
         @Override
-        public void sendAll(MessageGroupBatch message, String... queueAttr){
+        public void sendAll(MessageGroupBatch message, String... queueAttr) {
             messages.add(message);
         }
 
@@ -218,7 +235,7 @@ public class MainTest extends Main{
         }
 
         @Override
-        public void close(){
+        public void close() {
 
         }
 
@@ -251,22 +268,22 @@ public class MainTest extends Main{
         }
 
         @Override
-        public void send(EventBatch message){
+        public void send(EventBatch message) {
 
         }
 
         @Override
-        public void send(EventBatch message, String... queueAttr){
+        public void send(EventBatch message, String... queueAttr) {
 
         }
 
         @Override
-        public void sendAll(EventBatch message, String... queueAttr){
+        public void sendAll(EventBatch message, String... queueAttr) {
 
         }
 
         @Override
-        public void close(){
+        public void close() {
 
         }
     }

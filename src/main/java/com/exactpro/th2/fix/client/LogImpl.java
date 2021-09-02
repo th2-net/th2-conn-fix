@@ -21,8 +21,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class LogImpl implements Log {
 
-    private static final String ERROR_MSG = "Failed to send message for sessionAlias: ";
-
     private final Logger LOGGER = LoggerFactory.getLogger(LogImpl.class);
 
     private final Log log;
@@ -73,8 +71,9 @@ public class LogImpl implements Log {
     }
 
     private void sendError(String sessionAlias, Exception e) {
-        LOGGER.error(ERROR_MSG + sessionAlias, e);
-        onErrorEvent(ERROR_MSG + sessionAlias, e);
+        String message = "Failed to send message for sessionAlias: " + sessionAlias;
+        LOGGER.error(message, e);
+        onErrorEvent(message, e);
     }
 
     @Override

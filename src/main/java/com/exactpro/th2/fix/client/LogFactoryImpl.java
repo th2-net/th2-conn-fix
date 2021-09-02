@@ -30,7 +30,7 @@ public class LogFactoryImpl implements LogFactory {
 
     @Override
     public Log create(SessionID sessionID) {
-        return new LogImpl(logFactory.create(sessionID), messageRouter, eventBatch, Objects.requireNonNull(connections.get(sessionID)), rootEventId);
+        return new LogImpl(logFactory.create(sessionID), messageRouter, eventBatch, Objects.requireNonNull(connections.get(sessionID), "Connection must not be null."), rootEventId);
     }
 
 }
