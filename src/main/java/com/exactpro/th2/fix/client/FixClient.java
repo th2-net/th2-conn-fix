@@ -16,7 +16,7 @@ import quickfix.MessageFactory;
 import quickfix.MessageStoreFactory;
 import quickfix.SessionID;
 import quickfix.SessionSettings;
-import quickfix.SocketInitiator;
+import quickfix.ThreadedSocketInitiator;
 
 import java.util.Map;
 
@@ -25,7 +25,7 @@ public class FixClient {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FixClient.class);
 
-    private final SocketInitiator initiator;
+    private final ThreadedSocketInitiator initiator;
     private volatile boolean isRunning = false;
 
 
@@ -37,7 +37,7 @@ public class FixClient {
         LogFactory logFactory = new LogFactoryImpl(new FileLogFactory(settings), messageRouter, eventRouter, connections, rootEventId);
         MessageFactory messageFactory = new DefaultMessageFactory();
 
-        initiator = new SocketInitiator(application, messageStoreFactory, settings, logFactory, messageFactory);
+        initiator = new ThreadedSocketInitiator(application, messageStoreFactory, settings, logFactory, messageFactory);
 
     }
 
