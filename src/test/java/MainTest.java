@@ -41,8 +41,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.ReentrantLock;
 
 
 public class MainTest extends Main {
@@ -162,15 +160,15 @@ public class MainTest extends Main {
             System.out.println(item);
         }
 
-        ReentrantLock lock = new ReentrantLock();
-        Condition condition = lock.newCondition();
-        try {
-            lock.lock();
-            condition.await();
-            lock.unlock();
-        } catch (InterruptedException e) {
-            System.out.println("Interrupted Exception in main");
-        }
+//        ReentrantLock lock = new ReentrantLock();
+//        Condition condition = lock.newCondition();
+//        try {
+//            lock.lock();
+//            condition.await();
+//            lock.unlock();
+//        } catch (InterruptedException e) {
+//            System.out.println("Interrupted Exception in main");
+//        }
 
     }
 
