@@ -1,4 +1,4 @@
-# th2-conn-fix
+# th2-conn-qfj
  This microservice allows you to send and receive messages over the FIX protocol
   
 ## Configuration
