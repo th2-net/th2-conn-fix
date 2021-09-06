@@ -202,17 +202,18 @@ public class Main {
                             if (LOGGER.isErrorEnabled()) {
                                 LOGGER.error("Message in the group is not a raw message {} ", toJson(message));
                             }
-                        } else {
-                            String sessionAlias = MessageUtil.getSessionAlias(message);
-                            if (sessionAlias == null || sessionAlias.isBlank()) {
-                                throw new IllegalArgumentException("No such session alias for message: " + message);
-                            }
-                            String strMessage = MessageUtil.rawToString(message);
-                            Session session = Session.lookupSession(sessionIDs.get(sessionAlias));
-
-                            Message fixMessage = MessageUtils.parse(session, strMessage);
-                            session.send(fixMessage);
+                            return;
                         }
+                        String sessionAlias = MessageUtil.getSessionAlias(message);
+                        if (sessionAlias == null || sessionAlias.isBlank()) {
+                            throw new IllegalArgumentException("No such session alias for message: " + message);
+                        }
+                        String strMessage = MessageUtil.rawToString(message);
+                        Session session = Session.lookupSession(sessionIDs.get(sessionAlias));
+
+                        Message fixMessage = MessageUtils.parse(session, strMessage);
+                        session.send(fixMessage);
+
                     }
                 } catch (Exception e) {
                     LOGGER.error("Failed to handle message group: {}", toJson(group), e);
