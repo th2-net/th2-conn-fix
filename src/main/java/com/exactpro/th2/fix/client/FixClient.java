@@ -30,14 +30,14 @@ public class FixClient {
 
 
     public FixClient(SessionSettings settings, MessageRouter<MessageGroupBatch> messageRouter, MessageRouter<EventBatch> eventRouter,
-                     Map<SessionID, ConnectionID> connections, String rootEventId) throws ConfigError {
+                     Map<SessionID, ConnectionID> connections, String rootEventId, int queueCapacity) throws ConfigError {
 
         ClientApplication application = new ClientApplication();
         MessageStoreFactory messageStoreFactory = new FileStoreFactory(settings);
         LogFactory logFactory = new LogFactoryImpl(new FileLogFactory(settings), messageRouter, eventRouter, connections, rootEventId);
         MessageFactory messageFactory = new DefaultMessageFactory();
 
-        initiator = new ThreadedSocketInitiator(application, messageStoreFactory, settings, logFactory, messageFactory);
+        initiator = new ThreadedSocketInitiator(application, messageStoreFactory, settings, logFactory, messageFactory, queueCapacity);
 
     }
 

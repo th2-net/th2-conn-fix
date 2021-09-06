@@ -39,8 +39,10 @@
      | ResetOnDisconnect	|Determines if sequence numbers should be reset to 1 after an abnormal termination.	| Y / N | N |
      | ResetOnError	| Session setting for doing an automatic reset when an error occurs. A reset means disconnect, sequence numbers reset, store cleaned and reconnect, as for a daily reset.	| Y / N |	N |
      | DisconnectOnError	| Session setting for doing an automatic disconnect when an error occurs.	| Y / N	| N |    
-     |SessionAlias| session alias for incoming/outgoing th2 messages. | case-sensitive alpha-numeric string | |
-	
+     | SessionAlias| session alias for incoming/outgoing th2 messages. | case-sensitive alpha-numeric string | |
+     | QueueCapacity | Quantity of creating threads for sessions | integer value | |
+     
+     
 We can also put these settings in the root directory to set the default session settings.
 		
 
@@ -62,7 +64,7 @@ Incoming and outgoing messages are sent via MQ as `MessageGroups`, containing a 
 	
 ## Deployment via infra-mgr
 	
-	Here's an example of infra-mgr config required to deploy this service.  
+Here's an example of infra-mgr config required to deploy this service.  
 	  
 	  
 ```yaml
@@ -71,7 +73,7 @@ kind: Th2Box
 metadata:
   name: fix-client
 spec:		
-  image-name: ghcr.io/th2-net/ghcr.io/th2-net/th2-conn-fix-client
+  image-name: ghcr.io/th2-net/ghcr.io/th2-net/th2-conn-qfj-client
   image-version: 0.0.1
   custom-config:
     grpcStartControl: true
@@ -87,7 +89,7 @@ spec:
     beginString: FIX.4.2
     socketConnectHost: localhost
     socketConnectPort: 9877
-    sessionsSettings:
+    - sessionsSettings:
       senderCompID: client
       senderSubID: clientSubId
       senderLocationID: clientLocationId
@@ -95,7 +97,7 @@ spec:
       targetSubID: serverSubId
       targetLocationID: serverLocationId
       sessionAlias: client1
-    sessionsSettings:
+    - sessionsSettings:
       senderCompID: client2
       targetCompID: server
       sessionAlias: client2

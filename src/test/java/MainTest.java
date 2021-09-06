@@ -59,8 +59,8 @@ public class MainTest extends Main {
         fixBean.setSenderSubID("sendSubId");
         fixBean.setTargetSubID("tarSubId");
         fixBean.setSessionAlias("FIX42ClientServer");
-        FixBean fixBean1 = new FixBean();
 
+        FixBean fixBean1 = new FixBean();
         fixBean1.setSenderCompID("client2");
         fixBean1.setTargetCompID("server");
         fixBean1.setSocketConnectPort(9878);
@@ -69,7 +69,7 @@ public class MainTest extends Main {
         List<FixBean> fixBeans = new ArrayList<>();
         fixBeans.add(fixBean);
         fixBeans.add(fixBean1);
-        settings.setSessionsSettings(fixBeans);
+        settings.setSessionSettings(fixBeans);
 
         MyMessageRouter messageRouter = new MyMessageRouter();
 

@@ -14,6 +14,7 @@ import com.exactpro.th2.common.schema.message.SubscriberMonitor;
 import com.exactpro.th2.fix.client.exceptions.CreatingConfigFileException;
 import com.exactpro.th2.fix.client.exceptions.EmptyDataDictionaryException;
 import com.exactpro.th2.fix.client.exceptions.IncorrectFixFileNameException;
+import com.exactpro.th2.fix.client.fixBean.BaseFixBean;
 import com.exactpro.th2.fix.client.fixBean.FixBean;
 import com.exactpro.th2.fix.client.impl.Destructor;
 import com.exactpro.th2.fix.client.util.FixBeanUtil;
@@ -58,7 +59,7 @@ public class Main {
 
     private static final String INPUT_QUEUE_ATTRIBUTE = "send";
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
-    private static final Pattern FIX_PATTERN = Pattern.compile("FIX\\.[4-5]\\.[0-4]\\.xml");
+    private static final Pattern DICTIONARY_FILE_NAME = Pattern.compile("FIX\\.[4-5]\\.[0-4]\\.xml");
 
     public static class Resources {
         private final String name;
@@ -109,31 +110,33 @@ public class Main {
         JsonMapper mapper = JsonMapper.builder().build();
         Settings settings = factory.getCustomConfiguration(Settings.class, mapper);
 
-        List<File> dictionaries = new ArrayList<>();
+        Map<String, File> dictionaries = new HashMap<>();
 
         try (ZipInputStream zin = new ZipInputStream(factory.readDictionary())) {
             ZipEntry zipEntry;
             while ((zipEntry = zin.getNextEntry()) != null) {
-                if (!zipEntry.getName().matches(FIX_PATTERN.pattern()))
+                String zipName = zipEntry.getName();
+                if (DICTIONARY_FILE_NAME.matcher(zipName).matches()) {
                     throw new IncorrectFixFileNameException("Incorrect file name for FIX dictionary");
+                }
                 File dataDict = File.createTempFile(zipEntry.getName(), "");
                 Files.write(dataDict.toPath(), zin.readAllBytes());
                 new DataDictionary(dataDict.getAbsolutePath()); //check that xml file contains the correct values
-                dictionaries.add(dataDict);
+                dictionaries.put(zipName.replaceFirst(".xml", ""), dataDict);
                 dataDict.deleteOnExit();
             }
-        } catch (IOException | NullPointerException | ConfigError e) {
+        } catch (IOException | ConfigError e) {
             throw new Exception("Failed to create DataDictionary", e);
         }
 
-        for (FixBean fixBean : settings.sessionsSettings) {
-            for (File dataDict : dictionaries) {
-                if (dataDict.getName().equals(fixBean.getBeginString() + ".xml")) {
-                    fixBean.setDataDictionary(dataDict.getAbsolutePath());
+        for (FixBean fixBean : settings.sessionSettings) {
+            for (Map.Entry<String, File> dictionaryEntry : dictionaries.entrySet()) {
+                if (dictionaryEntry.getKey().equals(fixBean.getBeginString())) {
+                    fixBean.setDataDictionary(dictionaryEntry.getValue().getAbsolutePath());
                 }
             }
             if (fixBean.getDataDictionary() == null) {
-                throw new EmptyDataDictionaryException("Data Dictionary does not set");
+                throw new EmptyDataDictionaryException("No dictionary for: " + fixBean.getBeginString());
             }
         }
 
@@ -144,7 +147,7 @@ public class Main {
         try {
             run(settings, messageRouter, eventRouter, grpcRouter, resources);
         } catch (IncorrectDataFormat | CreatingConfigFileException e) {
-            LOGGER.error(e.getMessage(), e);
+            LOGGER.error("Error when using the config file", e);
             System.exit(1);
         } catch (ConfigError e) {
             LOGGER.error("Failed to load file with session settings", e);
@@ -157,32 +160,27 @@ public class Main {
                            GrpcRouter grpcRouter, Deque<Resources> resources) throws CreatingConfigFileException, ConfigError, IncorrectDataFormat {
 
         File configFile = FixBeanUtil.createConfig(settings);
+        System.out.println(settings);
 
-        StringBuilder stringBuilder = new StringBuilder();
-        Map<SessionID, ConnectionID> connections = new HashMap<>();
-        Map<String, SessionID> sessionIDS = new HashMap<>();
+        Map<SessionID, ConnectionID> connectionIDs = new HashMap<>();
+        Map<String, SessionID> sessionIDs = Settings.getSessionIDs(settings.sessionSettings);
 
-        for (int i = 0; i < settings.sessionsSettings.size(); i++) {
-
-            FixBean fixBean = settings.sessionsSettings.get(i);
-            String sessionAlias = fixBean.getSessionAlias();
-            SessionID sessionID = FixBeanUtil.getSessionID(fixBean);
-            sessionIDS.put(sessionAlias, sessionID);
-            connections.put(sessionID, ConnectionID.newBuilder().setSessionAlias(sessionAlias).build());
-            stringBuilder.append(sessionAlias);
-
-            if (i < settings.sessionsSettings.size() - 1) {
-                stringBuilder.append(":");
-            }
+        for (Map.Entry<String, SessionID> sessionIDEntry : sessionIDs.entrySet()) {
+            String sessionAlias = sessionIDEntry.getKey();
+            SessionID sessionID = sessionIDEntry.getValue();
+            connectionIDs.put(sessionID, ConnectionID.newBuilder().setSessionAlias(sessionAlias).build());
         }
 
         Event curEvent = MessageRouterUtils.storeEvent(eventRouter, Event.start(), null);
-        curEvent.name("FIX client " + stringBuilder + " " + Instant.now());
+        curEvent.name("FIX client " + sessionIDs.keySet().stream()
+                .reduce((resultKey, nextKey) -> resultKey + nextKey)
+                .orElse("")
+                + " " + Instant.now());
         curEvent.type("Microservice");
         String rootEventId = curEvent.getId();
 
         FixClient fixClient = new FixClient(new SessionSettings(configFile.getAbsolutePath()),
-                messageRouter, eventRouter, connections, rootEventId);
+                messageRouter, eventRouter, connectionIDs, rootEventId, settings.queueCapacity);
 
         configFile.deleteOnExit();
         resources.add(new Resources("client", fixClient::stop));
@@ -196,7 +194,7 @@ public class Main {
                 try {
                     if (group.getMessagesCount() != 1) {
                         if (LOGGER.isErrorEnabled()) {
-                            LOGGER.error("Message group contains more than 1 message {} ", toJson(group));
+                            LOGGER.error("Message group contains more or less than 1 message {} ", toJson(group));
                         }
                     } else {
                         AnyMessage message = group.getMessagesList().get(0);
@@ -206,8 +204,11 @@ public class Main {
                             }
                         } else {
                             String sessionAlias = MessageUtil.getSessionAlias(message);
+                            if (sessionAlias == null || sessionAlias.isBlank()) {
+                                throw new IllegalArgumentException("No such session alias for message: " + message);
+                            }
                             String strMessage = MessageUtil.rawToString(message);
-                            Session session = Session.lookupSession(sessionIDS.get(sessionAlias));
+                            Session session = Session.lookupSession(sessionIDs.get(sessionAlias));
 
                             Message fixMessage = MessageUtils.parse(session, strMessage);
                             session.send(fixMessage);
@@ -253,18 +254,43 @@ public class Main {
 
     }
 
-    public static class Settings extends FixBean {
-        @JsonProperty(required = true)
+    public static class Settings extends BaseFixBean {
         boolean grpcStartControl = false;
-        @JsonProperty(required = true)
         boolean autoStart = true;
-        @JsonProperty(required = true)
         int autoStopAfter = 0;
+        int queueCapacity = 1;
         @JsonProperty(required = true)
-        List<FixBean> sessionsSettings = new ArrayList<>();
+        List<FixBean> sessionSettings = new ArrayList<>();
 
-        public void setSessionsSettings(List<FixBean> sessionsSettings) {
-            this.sessionsSettings = sessionsSettings;
+        public static Map<String, SessionID> getSessionIDs(List<FixBean> sessionSettings) {
+
+            if (sessionSettings.size() == 0) {
+                throw new IllegalArgumentException("Session settings are empty.");
+            }
+
+            Map<String, SessionID> sessionIDs = new HashMap<>();
+
+            for (FixBean fixBean : sessionSettings)
+                sessionIDs.put(fixBean.getSessionAlias(), FixBeanUtil.getSessionID(fixBean));
+            return sessionIDs;
+        }
+
+        public void setSessionSettings(List<FixBean> sessionSettings) throws IncorrectDataFormat {
+            Set<SessionID> sessionIds = new HashSet<>(); // if the session IDs or session aliases are not unique, we will get an error
+            Set<String> sessionAliases = new HashSet<>();
+
+            for (FixBean fixBean : sessionSettings) {
+                SessionID sessionID = FixBeanUtil.getSessionID(fixBean);
+                String sessionAlias = fixBean.getSessionAlias();
+
+                if (sessionIds.contains(sessionID) || sessionAliases.contains(sessionAlias)) {
+                    throw new IncorrectDataFormat("SessionID and SessionAlias in sessions settings should be unique.");
+                }
+
+                sessionIds.add(sessionID);
+                sessionAliases.add(sessionAlias);
+            }
+            this.sessionSettings = sessionSettings;
         }
 
         public boolean isGrpcStartControl() {
@@ -294,52 +320,28 @@ public class Main {
             this.autoStopAfter = autoStopAfter;
         }
 
-        public List<FixBean> getSessionsSettings() throws IncorrectDataFormat {
-            Set<String> sessionIds = new HashSet<>(); // if the session IDs or session aliases are not unique, we will get an error
-            Set<String> sessionAliases = new HashSet<>();
+        @Override
+        public void setFileStorePath(String fileStorePath) {
+            throw new IllegalStateException("Set FileStorePath for default session settings are unavailable.");
+        }
 
-            for (FixBean fixBean : sessionsSettings) {
-                sessionIds.add(FixBeanUtil.getSessionID(fixBean).toString());
-                sessionAliases.add(fixBean.getSessionAlias());
-            }
+        public List<FixBean> getSessionSettings() {
+            return sessionSettings;
+        }
 
-            if (sessionIds.size() != sessionsSettings.size() || sessionAliases.size() != sessionsSettings.size()) {
-                throw new IncorrectDataFormat("SessionID and SessionAlias in sessions settings should be unique.");
-            }
-
-            return sessionsSettings;
+        public int getQueueCapacity() {
+            return queueCapacity;
         }
 
         @Override
         public String toString() {
 
             return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE)
+                    .appendSuper(super.toString())
                     .append("grpcStartControl", grpcStartControl)
                     .append("autoStart", autoStart)
                     .append("autoStopAfter", autoStopAfter)
-                    .append("FileStorePath", fileStorePath)
-                    .append("FileLogPath", fileLogPath)
-                    .append("ConnectionType", connectionType)
-                    .append("ReconnectInterval", reconnectInterval)
-                    .append("HeartBtInt", heartBtInt)
-                    .append("UseDataDictionary", useDataDictionary)
-                    .append("ValidateUserDefinedFields", validateUserDefinedFields)
-                    .append("ValidateIncomingMessage", validateIncomingMessage)
-                    .append("RefreshOnLogon", refreshOnLogon)
-                    .append("NonStopSession", nonStopSession)
-                    .append("BeginString", beginString)
-                    .append("SocketConnectHost", socketConnectHost)
-                    .append("SocketConnectPort", socketConnectPort)
-                    .append("SenderCompID", senderCompID)
-                    .append("SenderSubID", senderSubID)
-                    .append("SenderLocationID", senderLocationID)
-                    .append("TargetCompID", targetCompID)
-                    .append("TargetSubID", targetSubID)
-                    .append("TargetLocationID", targetLocationID)
-                    .append("DataDictionary", dataDictionary)
-                    .append("SessionQualifier", sessionQualifier)
-                    .append("SessionAlias", sessionAlias)
-                    .append("sessionsSettings", sessionsSettings)
+                    .append("sessionsSettings", sessionSettings)
                     .toString();
         }
     }
