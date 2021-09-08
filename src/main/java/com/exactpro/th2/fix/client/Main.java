@@ -269,7 +269,7 @@ public class Main {
                 SessionID sessionID = FixBeanUtil.getSessionID(fixBean);
                 String sessionAlias = fixBean.getSessionAlias();
 
-                if (sessionIDsByAliases.put(sessionAlias, sessionID) != null || sessionIDsByAliases.containsValue(sessionID)) {
+                if (sessionIDsByAliases.containsValue(sessionID) || sessionIDsByAliases.put(sessionAlias, sessionID) != null) {
                     throw new IncorrectDataFormat("SessionID and SessionAlias in sessions settings should be unique. " +
                             "Repeating of session alias: \"" + sessionAlias + "\" or sessionID: \"" + sessionID + "\"");
                 }
