@@ -40,7 +40,7 @@
      | ResetOnError	| Session setting for doing an automatic reset when an error occurs. A reset means disconnect, sequence numbers reset, store cleaned and reconnect, as for a daily reset.	| Y / N |	N |
      | DisconnectOnError	| Session setting for doing an automatic disconnect when an error occurs.	| Y / N	| N |    
      | SessionAlias| session alias for incoming/outgoing th2 messages. | case-sensitive alpha-numeric string | |
-     | QueueCapacity | Quantity of creating threads for sessions | integer value | |
+     | QueueCapacity | max message queue size in message dispatching thread | integer value | |
      
      
 We can also put these settings in the root directory to set the default session settings.

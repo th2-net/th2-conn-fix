@@ -16,9 +16,11 @@ import com.exactpro.th2.common.schema.message.impl.rabbitmq.connection.Connectio
 import com.exactpro.th2.fix.client.Main;
 import com.exactpro.th2.fix.client.exceptions.CreatingConfigFileException;
 import com.exactpro.th2.fix.client.fixBean.FixBean;
+import com.exactpro.th2.fix.client.util.MessageUtil;
 import com.google.protobuf.ByteString;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
 import quickfix.ConfigError;
@@ -156,9 +158,22 @@ public class MainTest extends Main {
 
         Thread.sleep(10000);
 
-        for (MessageGroupBatch item : messageRouter.messages) {
-            System.out.println(item);
+        String testString;
+        int countOfOrders = 0;
+        int countOfResponses = 0;
+
+        for (MessageGroupBatch message : messageRouter.messages) {
+            testString = MessageUtil.rawToString(message.getGroupsList().get(0).getMessagesList().get(0));
+            if (testString.contains("\00135=D")) {
+                countOfOrders++;
+            }
+            if (testString.contains("\00135=8")) {
+                countOfResponses++;
+            }
+
         }
+        System.out.println(countOfOrders);
+        Assert.assertEquals(countOfOrders, countOfResponses);
 
 //        ReentrantLock lock = new ReentrantLock();
 //        Condition condition = lock.newCondition();

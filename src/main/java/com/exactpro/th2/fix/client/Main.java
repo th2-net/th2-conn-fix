@@ -12,15 +12,16 @@ import com.exactpro.th2.common.schema.message.MessageRouter;
 import com.exactpro.th2.common.schema.message.MessageRouterUtils;
 import com.exactpro.th2.common.schema.message.SubscriberMonitor;
 import com.exactpro.th2.fix.client.exceptions.CreatingConfigFileException;
-import com.exactpro.th2.fix.client.exceptions.EmptyDataDictionaryException;
 import com.exactpro.th2.fix.client.exceptions.IncorrectFixFileNameException;
 import com.exactpro.th2.fix.client.fixBean.BaseFixBean;
 import com.exactpro.th2.fix.client.fixBean.FixBean;
 import com.exactpro.th2.fix.client.impl.Destructor;
 import com.exactpro.th2.fix.client.util.FixBeanUtil;
 import com.exactpro.th2.fix.client.util.MessageUtil;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.slf4j.Logger;
@@ -110,19 +111,19 @@ public class Main {
         JsonMapper mapper = JsonMapper.builder().build();
         Settings settings = factory.getCustomConfiguration(Settings.class, mapper);
 
-        Map<String, File> dictionaries = new HashMap<>();
+        Map<String, String> dictionaries = new HashMap<>();
 
         try (ZipInputStream zin = new ZipInputStream(factory.readDictionary())) {
             ZipEntry zipEntry;
             while ((zipEntry = zin.getNextEntry()) != null) {
                 String zipName = zipEntry.getName();
-                if (DICTIONARY_FILE_NAME.matcher(zipName).matches()) {
+                if (!DICTIONARY_FILE_NAME.matcher(zipName).matches()) {
                     throw new IncorrectFixFileNameException("Incorrect file name for FIX dictionary");
                 }
                 File dataDict = File.createTempFile(zipEntry.getName(), "");
                 Files.write(dataDict.toPath(), zin.readAllBytes());
                 new DataDictionary(dataDict.getAbsolutePath()); //check that xml file contains the correct values
-                dictionaries.put(zipName.replaceFirst(".xml", ""), dataDict);
+                dictionaries.put(FilenameUtils.getBaseName(zipName), dataDict.getAbsolutePath());
                 dataDict.deleteOnExit();
             }
         } catch (IOException | ConfigError e) {
@@ -130,14 +131,9 @@ public class Main {
         }
 
         for (FixBean fixBean : settings.sessionSettings) {
-            for (Map.Entry<String, File> dictionaryEntry : dictionaries.entrySet()) {
-                if (dictionaryEntry.getKey().equals(fixBean.getBeginString())) {
-                    fixBean.setDataDictionary(dictionaryEntry.getValue().getAbsolutePath());
-                }
-            }
-            if (fixBean.getDataDictionary() == null) {
-                throw new EmptyDataDictionaryException("No dictionary for: " + fixBean.getBeginString());
-            }
+            String beginString = fixBean.getBeginString();
+            String dictionary = Objects.requireNonNull(dictionaries.get(beginString), () -> "No dictionary for: " + beginString);
+            fixBean.setDataDictionary(dictionary);
         }
 
         MessageRouter<EventBatch> eventRouter = factory.getEventBatchRouter();
@@ -160,10 +156,9 @@ public class Main {
                            GrpcRouter grpcRouter, Deque<Resources> resources) throws CreatingConfigFileException, ConfigError, IncorrectDataFormat {
 
         File configFile = FixBeanUtil.createConfig(settings);
-        System.out.println(settings);
 
         Map<SessionID, ConnectionID> connectionIDs = new HashMap<>();
-        Map<String, SessionID> sessionIDs = Settings.getSessionIDs(settings.sessionSettings);
+        Map<String, SessionID> sessionIDs = settings.getSessionIDsByAliases();
 
         for (Map.Entry<String, SessionID> sessionIDEntry : sessionIDs.entrySet()) {
             String sessionAlias = sessionIDEntry.getKey();
@@ -205,11 +200,10 @@ public class Main {
                             return;
                         }
                         String sessionAlias = MessageUtil.getSessionAlias(message);
-                        if (sessionAlias == null || sessionAlias.isBlank()) {
-                            throw new IllegalArgumentException("No such session alias for message: " + message);
-                        }
                         String strMessage = MessageUtil.rawToString(message);
-                        Session session = Session.lookupSession(sessionIDs.get(sessionAlias));
+
+                        SessionID sessionID = Objects.requireNonNull(sessionIDs.get(sessionAlias), () -> "No such SessionID for session alias: " + sessionAlias);
+                        Session session = Session.lookupSession(sessionID);
 
                         Message fixMessage = MessageUtils.parse(session, strMessage);
                         session.send(fixMessage);
@@ -259,21 +253,18 @@ public class Main {
         boolean grpcStartControl = false;
         boolean autoStart = true;
         int autoStopAfter = 0;
-        int queueCapacity = 1;
+        int queueCapacity = 10000;
         @JsonProperty(required = true)
         List<FixBean> sessionSettings = new ArrayList<>();
+        @JsonIgnore
+        private final Map<String, SessionID> sessionIDsByAliases = new HashMap<>();
 
-        public static Map<String, SessionID> getSessionIDs(List<FixBean> sessionSettings) {
+        public Map<String, SessionID> getSessionIDsByAliases() {
+            return sessionIDsByAliases;
+        }
 
-            if (sessionSettings.size() == 0) {
-                throw new IllegalArgumentException("Session settings are empty.");
-            }
-
-            Map<String, SessionID> sessionIDs = new HashMap<>();
-
-            for (FixBean fixBean : sessionSettings)
-                sessionIDs.put(fixBean.getSessionAlias(), FixBeanUtil.getSessionID(fixBean));
-            return sessionIDs;
+        public List<FixBean> getSessionSettings() {
+            return sessionSettings;
         }
 
         public void setSessionSettings(List<FixBean> sessionSettings) throws IncorrectDataFormat {
@@ -284,14 +275,20 @@ public class Main {
                 SessionID sessionID = FixBeanUtil.getSessionID(fixBean);
                 String sessionAlias = fixBean.getSessionAlias();
 
-                if (sessionIds.contains(sessionID) || sessionAliases.contains(sessionAlias)) {
-                    throw new IncorrectDataFormat("SessionID and SessionAlias in sessions settings should be unique.");
+                if (!sessionIds.add(sessionID) || !sessionAliases.add(sessionAlias)) {
+                    throw new IncorrectDataFormat("SessionID and SessionAlias in sessions settings should be unique. " +
+                            "Repeating of session alias: \"" + sessionAlias + "\" or sessionID: \"" + sessionID + "\"");
                 }
-
-                sessionIds.add(sessionID);
-                sessionAliases.add(sessionAlias);
+                sessionIDsByAliases.put(sessionAlias, sessionID);
             }
             this.sessionSettings = sessionSettings;
+        }
+
+        public void setQueueCapacity(int queueCapacity) {
+            if (queueCapacity < 0) {
+                throw new IllegalArgumentException("Queue capacity cannot be negative (value of queue capacity: " + queueCapacity + ").");
+            }
+            this.queueCapacity = queueCapacity;
         }
 
         public boolean isGrpcStartControl() {
@@ -316,18 +313,9 @@ public class Main {
 
         public void setAutoStopAfter(int autoStopAfter) {
             if (autoStopAfter < 0) {
-                throw new IllegalArgumentException("Timer for automatically stopping the client cannot be negative (value of timer: " + autoStopAfter + ")");
+                throw new IllegalArgumentException("Timer for automatically stopping the client cannot be negative (value of timer: " + autoStopAfter + ").");
             }
             this.autoStopAfter = autoStopAfter;
-        }
-
-        @Override
-        public void setFileStorePath(String fileStorePath) {
-            throw new IllegalStateException("Set FileStorePath for default session settings are unavailable.");
-        }
-
-        public List<FixBean> getSessionSettings() {
-            return sessionSettings;
         }
 
         public int getQueueCapacity() {
@@ -343,6 +331,7 @@ public class Main {
                     .append("autoStart", autoStart)
                     .append("autoStopAfter", autoStopAfter)
                     .append("sessionsSettings", sessionSettings)
+                    .append("sessionIDsByAliases", sessionIDsByAliases)
                     .toString();
         }
     }

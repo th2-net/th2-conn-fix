@@ -42,7 +42,6 @@ public class LogImpl implements Log {
         this.sessionAlias = connectionID.getSessionAlias();
     }
 
-
     @Override
     public void clear() {
         log.clear();

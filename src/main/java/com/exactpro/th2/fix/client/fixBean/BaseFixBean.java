@@ -2,16 +2,13 @@ package com.exactpro.th2.fix.client.fixBean;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
-
-import java.util.regex.Pattern;
 
 import static com.exactpro.th2.fix.client.util.FixBeanUtil.addToConfig;
 
 public class BaseFixBean {
-
-    private static final Pattern YES_OR_NO = Pattern.compile("[YN]?");
 
     protected String fileStorePath = "storage/messages/";
     protected String fileLogPath = "outgoing";
@@ -25,6 +22,7 @@ public class BaseFixBean {
     protected String validateIncomingMessage = "Y";
     protected String refreshOnLogon = "Y";
     protected String nonStopSession = "Y";
+
 
     public BaseFixBean() {
     }
@@ -42,26 +40,25 @@ public class BaseFixBean {
         addToConfig("ValidateUserDefinedFields", validateUserDefinedFields, sb);
         addToConfig("ValidateIncomingMessage", validateIncomingMessage, sb);
         addToConfig("RefreshOnLogon", refreshOnLogon, sb);
-
         return sb;
     }
 
     public void setFileStorePath(String fileStorePath) {
-        if (fileStorePath == null || fileStorePath.isBlank()) {
+        if (StringUtils.isBlank(fileStorePath)) {
             throw new IllegalArgumentException("fileStorePath must not be null or blank.");
         }
         this.fileStorePath = fileStorePath;
     }
 
     public void setFileLogPath(String fileLogPath) {
-        if (fileLogPath == null || fileLogPath.isBlank()) {
+        if (StringUtils.isBlank(fileLogPath)) {
             throw new IllegalArgumentException("FileLogPath must not be null or blank.");
         }
         this.fileLogPath = fileLogPath;
     }
 
     public void setReconnectInterval(long reconnectInterval) {
-        if (reconnectInterval < 30) { //todo which value is valid?
+        if (reconnectInterval < 0) {
             throw new IllegalArgumentException("Reconnect interval must not be negative.");
         }
         this.reconnectInterval = reconnectInterval;
@@ -75,33 +72,32 @@ public class BaseFixBean {
     }
 
     public void setValidateUserDefinedFields(String validateUserDefinedFields) {
-        if (!YES_OR_NO.matcher(validateUserDefinedFields).matches()) {
+        if (!validateUserDefinedFields.equals("Y") && !validateUserDefinedFields.equals("N")) {
             throw new IllegalArgumentException("validateUserDefinedFields must be \"Y\" or \"N\".");
         }
         this.validateUserDefinedFields = validateUserDefinedFields;
     }
 
     public void setValidateIncomingMessage(String validateIncomingMessage) {
-        if (!YES_OR_NO.matcher(validateIncomingMessage).matches()) {
+        if (!validateIncomingMessage.equals("Y") && !validateIncomingMessage.equals("N")) {
             throw new IllegalArgumentException("validateIncomingMessage must be \"Y\" or \"N\".");
         }
         this.validateIncomingMessage = validateIncomingMessage;
     }
 
     public void setRefreshOnLogon(String refreshOnLogon) {
-        if (!YES_OR_NO.matcher(refreshOnLogon).matches()) {
+        if (!refreshOnLogon.equals("Y") && !refreshOnLogon.equals("N")) {
             throw new IllegalArgumentException("refreshOnLogon must be \"Y\" or \"N\".");
         }
         this.refreshOnLogon = refreshOnLogon;
     }
 
     public void setNonStopSession(String nonStopSession) {
-        if (!YES_OR_NO.matcher(nonStopSession).matches()) {
+        if (!nonStopSession.equals("Y") && !nonStopSession.equals("N")) {
             throw new IllegalArgumentException("nonStopSession must be \"Y\" or \"N\".");
         }
         this.nonStopSession = nonStopSession;
     }
-
 
     public long getHeartBtInt() {
         return heartBtInt;

@@ -38,9 +38,9 @@ public class FixBean extends BaseFixBean {
         addToConfig("TargetSubID", targetSubID, stringBuilder);
         addToConfig("TargetLocationID", targetLocationID, stringBuilder);
         addToConfig("DataDictionary", dataDictionary, stringBuilder);
-
         return stringBuilder;
     }
+
     public void setBeginString(String beginString) {
         if (beginString == null || beginString.isBlank()) {
             throw new IllegalArgumentException("beginString must not be null or blank.");
