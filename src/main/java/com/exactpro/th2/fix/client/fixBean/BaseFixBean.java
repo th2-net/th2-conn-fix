@@ -43,6 +43,12 @@ public class BaseFixBean {
         return sb;
     }
 
+    private void validateTagValue(String tagName, String tagValue) {
+        if (!tagValue.equals("Y") && !tagValue.equals("N")) {
+            throw new IllegalArgumentException(tagName + " must be \"Y\" or \"N\".");
+        }
+    }
+
     public void setFileStorePath(String fileStorePath) {
         if (StringUtils.isBlank(fileStorePath)) {
             throw new IllegalArgumentException("fileStorePath must not be null or blank.");
@@ -72,30 +78,22 @@ public class BaseFixBean {
     }
 
     public void setValidateUserDefinedFields(String validateUserDefinedFields) {
-        if (!validateUserDefinedFields.equals("Y") && !validateUserDefinedFields.equals("N")) {
-            throw new IllegalArgumentException("validateUserDefinedFields must be \"Y\" or \"N\".");
-        }
+        validateTagValue("ValidateUserDefinedFields", validateUserDefinedFields);
         this.validateUserDefinedFields = validateUserDefinedFields;
     }
 
     public void setValidateIncomingMessage(String validateIncomingMessage) {
-        if (!validateIncomingMessage.equals("Y") && !validateIncomingMessage.equals("N")) {
-            throw new IllegalArgumentException("validateIncomingMessage must be \"Y\" or \"N\".");
-        }
+        validateTagValue("ValidateIncomingMessage", validateIncomingMessage);
         this.validateIncomingMessage = validateIncomingMessage;
     }
 
     public void setRefreshOnLogon(String refreshOnLogon) {
-        if (!refreshOnLogon.equals("Y") && !refreshOnLogon.equals("N")) {
-            throw new IllegalArgumentException("refreshOnLogon must be \"Y\" or \"N\".");
-        }
+        validateTagValue("RefreshOnLogon", refreshOnLogon);
         this.refreshOnLogon = refreshOnLogon;
     }
 
     public void setNonStopSession(String nonStopSession) {
-        if (!nonStopSession.equals("Y") && !nonStopSession.equals("N")) {
-            throw new IllegalArgumentException("nonStopSession must be \"Y\" or \"N\".");
-        }
+        validateTagValue("NonStopSession", nonStopSession);
         this.nonStopSession = nonStopSession;
     }
 

@@ -40,13 +40,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
@@ -122,8 +121,9 @@ public class Main {
                 }
                 File dataDict = File.createTempFile(zipEntry.getName(), "");
                 Files.write(dataDict.toPath(), zin.readAllBytes());
-                new DataDictionary(dataDict.getAbsolutePath()); //check that xml file contains the correct values
-                dictionaries.put(FilenameUtils.getBaseName(zipName), dataDict.getAbsolutePath());
+                String dictionaryPath = dataDict.getAbsolutePath();
+                new DataDictionary(dictionaryPath); //check that xml file contains the correct values
+                dictionaries.put(FilenameUtils.getBaseName(zipName), dictionaryPath);
                 dataDict.deleteOnExit();
             }
         } catch (IOException | ConfigError e) {
@@ -160,17 +160,12 @@ public class Main {
         Map<SessionID, ConnectionID> connectionIDs = new HashMap<>();
         Map<String, SessionID> sessionIDs = settings.getSessionIDsByAliases();
 
-        for (Map.Entry<String, SessionID> sessionIDEntry : sessionIDs.entrySet()) {
-            String sessionAlias = sessionIDEntry.getKey();
-            SessionID sessionID = sessionIDEntry.getValue();
-            connectionIDs.put(sessionID, ConnectionID.newBuilder().setSessionAlias(sessionAlias).build());
-        }
+        sessionIDs.forEach((sessionAlias, sessionId) -> {
+            connectionIDs.put(sessionId, ConnectionID.newBuilder().setSessionAlias(sessionAlias).build());
+        });
 
         Event curEvent = MessageRouterUtils.storeEvent(eventRouter, Event.start(), null);
-        curEvent.name("FIX client " + sessionIDs.keySet().stream()
-                .reduce((resultKey, nextKey) -> resultKey + nextKey)
-                .orElse("")
-                + " " + Instant.now());
+        curEvent.name("FIX client " + String.join(":", sessionIDs.keySet()) + " " + Instant.now());
         curEvent.type("Microservice");
         String rootEventId = curEvent.getId();
 
@@ -202,7 +197,7 @@ public class Main {
                         String sessionAlias = MessageUtil.getSessionAlias(message);
                         String strMessage = MessageUtil.rawToString(message);
 
-                        SessionID sessionID = Objects.requireNonNull(sessionIDs.get(sessionAlias), () -> "No such SessionID for session alias: " + sessionAlias);
+                        SessionID sessionID = Objects.requireNonNull(sessionIDs.get(sessionAlias), () -> "Unknown session alias: " + sessionAlias);
                         Session session = Session.lookupSession(sessionID);
 
                         Message fixMessage = MessageUtils.parse(session, strMessage);
@@ -260,26 +255,24 @@ public class Main {
         private final Map<String, SessionID> sessionIDsByAliases = new HashMap<>();
 
         public Map<String, SessionID> getSessionIDsByAliases() {
-            return sessionIDsByAliases;
+            return Collections.unmodifiableMap(sessionIDsByAliases);
         }
 
         public List<FixBean> getSessionSettings() {
-            return sessionSettings;
+            return Collections.unmodifiableList(sessionSettings);
         }
 
         public void setSessionSettings(List<FixBean> sessionSettings) throws IncorrectDataFormat {
-            Set<SessionID> sessionIds = new HashSet<>(); // if the session IDs or session aliases are not unique, we will get an error
-            Set<String> sessionAliases = new HashSet<>();
+            sessionIDsByAliases.clear();    // if the session IDs or session aliases are not unique, we will get an error
 
             for (FixBean fixBean : sessionSettings) {
                 SessionID sessionID = FixBeanUtil.getSessionID(fixBean);
                 String sessionAlias = fixBean.getSessionAlias();
 
-                if (!sessionIds.add(sessionID) || !sessionAliases.add(sessionAlias)) {
+                if (sessionIDsByAliases.put(sessionAlias, sessionID) != null || sessionIDsByAliases.containsValue(sessionID)) {
                     throw new IncorrectDataFormat("SessionID and SessionAlias in sessions settings should be unique. " +
                             "Repeating of session alias: \"" + sessionAlias + "\" or sessionID: \"" + sessionID + "\"");
                 }
-                sessionIDsByAliases.put(sessionAlias, sessionID);
             }
             this.sessionSettings = sessionSettings;
         }
