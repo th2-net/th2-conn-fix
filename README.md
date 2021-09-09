@@ -86,10 +86,10 @@ spec:
     heartBtInt: 30
     useDataDictionary: Y
     nonStopSession: Y
-    beginString: FIX.4.2
-    socketConnectHost: localhost
-    socketConnectPort: 9877
     - sessionsSettings:
+      beginString: FIX.4.2
+      socketConnectHost: localhost
+      socketConnectPort: 9877
       senderCompID: client
       senderSubID: clientSubId
       senderLocationID: clientLocationId
@@ -98,6 +98,9 @@ spec:
       targetLocationID: serverLocationId
       sessionAlias: client1
     - sessionsSettings:
+      beginString: FIX.4.2
+      socketConnectHost: localhost
+      socketConnectPort: 9877
       senderCompID: client2
       targetCompID: server
       sessionAlias: client2
