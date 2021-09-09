@@ -111,6 +111,9 @@ spec:
     attributes:
       - subscribe
       - send
+    settings:
+      storageOnDemand: false
+      queueLength: 1000 
     - name: outgoing_messages
     connection-type: mq
     attributes:
