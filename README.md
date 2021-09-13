@@ -79,6 +79,8 @@ spec:
     grpcStartControl: true
     autoStart: true
     autoStopAfter: 300
+    storageOnDemand: false
+    queueLength: 1000 
     fileStorePath: storage/messages/
     fileLogPath: outgoing
     connectionType: initiator
@@ -111,9 +113,6 @@ spec:
     attributes:
       - subscribe
       - send
-    settings:
-      storageOnDemand: false
-      queueLength: 1000 
     - name: outgoing_messages
     connection-type: mq
     attributes:
