@@ -40,7 +40,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
@@ -252,18 +251,18 @@ public class Main {
         @JsonProperty(required = true)
         List<FixBean> sessionSettings = new ArrayList<>();
         @JsonIgnore
-        private final Map<String, SessionID> sessionIDsByAliases = new HashMap<>();
+        private Map<String, SessionID> sessionIDsByAliases = new HashMap<>();
 
         public Map<String, SessionID> getSessionIDsByAliases() {
-            return Collections.unmodifiableMap(sessionIDsByAliases);
+            return sessionIDsByAliases;
         }
 
         public List<FixBean> getSessionSettings() {
-            return Collections.unmodifiableList(sessionSettings);
+            return sessionSettings;
         }
 
         public void setSessionSettings(List<FixBean> sessionSettings) throws IncorrectDataFormat {
-            sessionIDsByAliases.clear();    // if the session IDs or session aliases are not unique, we will get an error
+            sessionIDsByAliases = new HashMap<>();    // if the session IDs or session aliases are not unique, we will get an error
 
             for (FixBean fixBean : sessionSettings) {
                 SessionID sessionID = FixBeanUtil.getSessionID(fixBean);
@@ -274,7 +273,8 @@ public class Main {
                             "Repeating of session alias: \"" + sessionAlias + "\" or sessionID: \"" + sessionID + "\"");
                 }
             }
-            this.sessionSettings = sessionSettings;
+            this.sessionIDsByAliases = Map.copyOf(sessionIDsByAliases);
+            this.sessionSettings = List.copyOf(sessionSettings);
         }
 
         public void setQueueCapacity(int queueCapacity) {
