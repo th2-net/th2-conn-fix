@@ -58,13 +58,14 @@ public class MainTest extends Main {
         fixBean.setTargetCompID("server");
         fixBean.setSenderSubID("sendSubId");
         fixBean.setTargetSubID("tarSubId");
-        fixBean.setSessionAlias("FIX42ClientServer");
+        fixBean.setSocketConnectPort(9877);
+        fixBean.setSessionAlias("client1");
 
         FixBean fixBean1 = new FixBean();
         fixBean1.setSenderCompID("client2");
         fixBean1.setTargetCompID("server");
         fixBean1.setSocketConnectPort(9878);
-        fixBean1.setSessionAlias("FIX42Client2Server");
+        fixBean1.setSessionAlias("client2");
 
         List<FixBean> fixBeans = new ArrayList<>();
         fixBeans.add(fixBean);
@@ -119,7 +120,7 @@ public class MainTest extends Main {
                                                         .newBuilder()
                                                         .setConnectionId(ConnectionID
                                                                 .newBuilder()
-                                                                .setSessionAlias("FIX42ClientServer")
+                                                                .setSessionAlias("client1")
                                                                 .build())
                                                         .build())
                                                 .build())
@@ -142,7 +143,7 @@ public class MainTest extends Main {
                                                         .newBuilder()
                                                         .setConnectionId(ConnectionID
                                                                 .newBuilder()
-                                                                .setSessionAlias("FIX42Client2Server")
+                                                                .setSessionAlias("client2")
                                                                 .build())
                                                         .build())
                                                 .build())
@@ -174,17 +175,6 @@ public class MainTest extends Main {
         }
         System.out.println(countOfOrders);
         Assert.assertEquals(countOfOrders, countOfResponses);
-
-//        ReentrantLock lock = new ReentrantLock();
-//        Condition condition = lock.newCondition();
-//        try {
-//            lock.lock();
-//            condition.await();
-//            lock.unlock();
-//        } catch (InterruptedException e) {
-//            System.out.println("Interrupted Exception in main");
-//        }
-
     }
 
     public static class MyMessageRouter implements MessageRouter<MessageGroupBatch> {

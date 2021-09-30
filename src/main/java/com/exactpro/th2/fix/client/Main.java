@@ -35,11 +35,14 @@ import quickfix.Session;
 import quickfix.SessionID;
 import quickfix.SessionSettings;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
@@ -58,7 +61,7 @@ public class Main {
 
     private static final String INPUT_QUEUE_ATTRIBUTE = "send";
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
-    private static final Pattern DICTIONARY_FILE_NAME = Pattern.compile("FIX\\.[4-5]\\.[0-4]\\.xml");
+    private static final Pattern DICTIONARY_FILE_NAME = Pattern.compile("FIX(T)?\\.[4-5]?(1)?\\.[0-4]?(1)?\\.xml");
 
     public static class Resources {
         private final String name;
@@ -111,15 +114,19 @@ public class Main {
 
         Map<String, String> dictionaries = new HashMap<>();
 
-        try (ZipInputStream zin = new ZipInputStream(factory.readDictionary())) {
+        try (InputStream rawBase64 = factory.readDictionary();
+             ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(Base64
+                     .getDecoder()
+                     .decode(rawBase64.readAllBytes()));
+             ZipInputStream zipInputStream = new ZipInputStream(byteArrayInputStream)) {
             ZipEntry zipEntry;
-            while ((zipEntry = zin.getNextEntry()) != null) {
+            while ((zipEntry = zipInputStream.getNextEntry()) != null) {
                 String zipName = zipEntry.getName();
                 if (!DICTIONARY_FILE_NAME.matcher(zipName).matches()) {
                     throw new IncorrectFixFileNameException("Incorrect file name for FIX dictionary");
                 }
                 File dataDict = File.createTempFile(zipEntry.getName(), "");
-                Files.write(dataDict.toPath(), zin.readAllBytes());
+                Files.write(dataDict.toPath(), zipInputStream.readAllBytes());
                 String dictionaryPath = dataDict.getAbsolutePath();
                 new DataDictionary(dictionaryPath); //check that xml file contains the correct values
                 dictionaries.put(FilenameUtils.getBaseName(zipName), dictionaryPath);
@@ -132,7 +139,14 @@ public class Main {
         for (FixBean fixBean : settings.sessionSettings) {
             String beginString = fixBean.getBeginString();
             String dictionary = Objects.requireNonNull(dictionaries.get(beginString), () -> "No dictionary for: " + beginString);
-            fixBean.setDataDictionary(dictionary);
+            if (beginString.equals("FIX.5.0")) {
+                fixBean.setAppDataDictionary(dictionary);
+                fixBean.setDefaultApplVerID(beginString);
+            } else if (beginString.equals("FIXT.1.1")) {
+                fixBean.setTransportDataDictionary(dictionary);
+            } else {
+                fixBean.setDataDictionary(dictionary);
+            }
         }
 
         MessageRouter<EventBatch> eventRouter = factory.getEventBatchRouter();
