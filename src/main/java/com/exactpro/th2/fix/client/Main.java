@@ -39,6 +39,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -130,6 +131,10 @@ public class Main {
                 String dictionaryPath = dataDict.getAbsolutePath();
                 new DataDictionary(dictionaryPath); //check that xml file contains the correct values
                 dictionaries.put(FilenameUtils.getBaseName(zipName), dictionaryPath);
+                LOGGER.info(FilenameUtils.getBaseName(zipName));
+                List<String> list = Files.readAllLines(dataDict.toPath(), StandardCharsets.UTF_8);
+                LOGGER.info(list.toString());
+
                 dataDict.deleteOnExit();
             }
         } catch (IOException | ConfigError e) {
@@ -139,6 +144,7 @@ public class Main {
         for (FixBean fixBean : settings.sessionSettings) {
             String beginString = fixBean.getBeginString();
             String defaultApplVerID = fixBean.getDefaultApplVerID();
+            LOGGER.info("befinString: " + beginString + " defaultApplVerID: " + defaultApplVerID);
             String dictionary = Objects.requireNonNull(dictionaries.get(beginString), () -> "No dictionary for: " + beginString);
             if (beginString.equals("FIXT.1.1")) {
                 String appDataDictionary = Objects.requireNonNull(dictionaries.get(defaultApplVerID), () -> "No dictionary for: " + defaultApplVerID);
@@ -147,6 +153,9 @@ public class Main {
             } else {
                 fixBean.setDataDictionary(dictionary);
             }
+            LOGGER.info("appDataDictionary: " + fixBean.getAppDataDictionary() +
+                    " transportDataDictionary: " + fixBean.getTransportDataDictionary() +
+                    " dataDictionary: " + fixBean.getDataDictionary());
         }
 
         MessageRouter<EventBatch> eventRouter = factory.getEventBatchRouter();
