@@ -26,7 +26,7 @@ public class FixBean extends BaseFixBean {
     protected String dataDictionary = null;
     protected String appDataDictionary = null;
     protected String transportDataDictionary = null;
-    protected String defaultApplVerID = null;
+    protected String defaultApplVerID = "FIX.5.0";
     protected String sessionAlias = null;
 
 

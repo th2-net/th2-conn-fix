@@ -138,11 +138,11 @@ public class Main {
 
         for (FixBean fixBean : settings.sessionSettings) {
             String beginString = fixBean.getBeginString();
+            String defaultApplVerID = fixBean.getDefaultApplVerID();
             String dictionary = Objects.requireNonNull(dictionaries.get(beginString), () -> "No dictionary for: " + beginString);
-            if (beginString.equals("FIX.5.0")) {
-                fixBean.setAppDataDictionary(dictionary);
-                fixBean.setDefaultApplVerID(beginString);
-            } else if (beginString.equals("FIXT.1.1")) {
+            if (beginString.equals("FIXT.1.1")) {
+                String appDataDictionary = Objects.requireNonNull(dictionaries.get(defaultApplVerID), () -> "No dictionary for: " + defaultApplVerID);
+                fixBean.setAppDataDictionary(appDataDictionary);
                 fixBean.setTransportDataDictionary(dictionary);
             } else {
                 fixBean.setDataDictionary(dictionary);
