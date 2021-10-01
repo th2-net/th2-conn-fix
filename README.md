@@ -9,7 +9,7 @@
 
      | Name of tag | Description | Valid Values| Default value|
      | :----: | :----: | :----: | :----: |
-     | BeginString | Version of FIX this session should use |	FIX.5.0, FIX.4.4, FIX.4.3, FIX.4.2, FIX.4.1, FIX.4.0, FIXT.1.1 (which then requires DefaultApplVerID, see below)||
+     | BeginString | Version of FIX this session should use |	FIX.4.4, FIX.4.3, FIX.4.2, FIX.4.1, FIX.4.0, FIXT.1.1 (which then requires DefaultApplVerID, see below)||
      | SenderCompID | Your compID as associated with this FIX session	|case-sensitive alpha-numeric string||
      | SenderSubID|(Optional) Your subID as associated with this FIX session	|case-sensitive alpha-numeric string||
      | SenderLocationID| (Optional) Your locationID as associated with this FIX session	|case-sensitive alpha-numeric string||
