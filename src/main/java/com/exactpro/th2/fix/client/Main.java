@@ -146,7 +146,7 @@ public class Main {
             LOGGER.info("beginString: " + beginString + " defaultApplVerID: " + defaultApplVerID);
             String dictionary = Objects.requireNonNull(dictionaries.get(beginString), () -> "No dictionary for: " + beginString);
             if (beginString.equals("FIXT.1.1")) {
-                String appDataDictionary = Objects.requireNonNull(dictionaries.get(defaultApplVerID), () -> "No dictionary for: " + defaultApplVerID);
+                String appDataDictionary = Objects.requireNonNull(dictionaries.get("FIX.5.0"), () -> "No dictionary for: " + defaultApplVerID);
                 fixBean.setAppDataDictionary(appDataDictionary);
                 fixBean.setTransportDataDictionary(dictionary);
             } else {
