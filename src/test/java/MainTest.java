@@ -47,7 +47,6 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 
 public class MainTest extends Main {
 
-
     @Test
     public void runTest() throws Exception {
 
@@ -290,6 +289,4 @@ public class MainTest extends Main {
 
         }
     }
-
-
 }
