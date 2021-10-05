@@ -22,6 +22,7 @@ public class BaseFixBean {
     protected String validateIncomingMessage = "Y";
     protected String refreshOnLogon = "Y";
     protected String nonStopSession = "Y";
+    protected String resetOnLogon = "Y";
 
 
     public BaseFixBean() {
@@ -40,6 +41,7 @@ public class BaseFixBean {
         addToConfig("ValidateUserDefinedFields", validateUserDefinedFields, sb);
         addToConfig("ValidateIncomingMessage", validateIncomingMessage, sb);
         addToConfig("RefreshOnLogon", refreshOnLogon, sb);
+        addToConfig("ResetOnLogon", resetOnLogon, sb);
         return sb;
     }
 
@@ -97,6 +99,15 @@ public class BaseFixBean {
         this.nonStopSession = nonStopSession;
     }
 
+    public void setResetOnLogon(String resetOnLogon) {
+        validateTagValue("ResetOnLogon", resetOnLogon);
+        this.resetOnLogon = resetOnLogon;
+    }
+
+    public String getResetOnLogon() {
+        return resetOnLogon;
+    }
+
     public long getHeartBtInt() {
         return heartBtInt;
     }
@@ -150,6 +161,7 @@ public class BaseFixBean {
                 .append("ValidateIncomingMessage", validateIncomingMessage)
                 .append("RefreshOnLogon", refreshOnLogon)
                 .append("NonStopSession", nonStopSession)
+                .append("ResetOnLogon", resetOnLogon)
                 .toString();
     }
 }
