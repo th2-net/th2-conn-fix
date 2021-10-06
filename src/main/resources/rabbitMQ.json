@@ -1,0 +1,8 @@
+{
+  "host": "10.119.0.165",
+  "port": "32100",
+  "vHost": "th2-conn-qfj",
+  "username": "th2",
+  "password": "rab-pass",
+  "exchangeName": "th2-exchange"
+}

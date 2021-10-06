@@ -1,0 +1,46 @@
+{
+  "queues": {
+    "estore-pin": {
+      "attributes": [
+        "event",
+        "publish"
+      ],
+      "exchange": "th2-exchange",
+      "filters": [],
+      "name": "key[th2-conn-qfj:fix-client:estore-pin]",
+      "queue": ""
+    },
+    "incoming_messages": {
+      "attributes": [
+        "publish",
+        "raw",
+        "first"
+      ],
+      "exchange": "th2-exchange",
+      "filters": [],
+      "name": "key[th2-conn-qfj:fix-client:incoming_messages]",
+      "queue": ""
+    },
+    "outgoing_messages": {
+      "attributes": [
+        "publish",
+        "raw",
+        "second"
+      ],
+      "exchange": "th2-exchange",
+      "filters": [],
+      "name": "key[th2-conn-qfj:fix-client:outgoing_messages]",
+      "queue": ""
+    },
+    "to_send": {
+      "attributes": [
+        "subscribe",
+        "send"
+      ],
+      "exchange": "th2-exchange",
+      "filters": [],
+      "name": "",
+      "queue": "link[th2-conn-qfj:fix-client:to_send]"
+    }
+  }
+}

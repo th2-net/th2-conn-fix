@@ -1,0 +1,24 @@
+{
+  "autoStart": "true",
+  "autoStopAfter": "300",
+  "connectionType": "initiator",
+  "fileLogPath": "outgoing",
+  "fileStorePath": "storage/messages/",
+  "grpcStartControl": "true",
+  "heartBtInt": "30",
+  "nonStopSession": "Y",
+  "reconnectInterval": "60",
+  "resetOnLogon": "Y",
+  "sessionSettings": [
+    {
+      "beginString": "FIXT.1.1",
+      "defaultApplVerID": "9",
+      "senderCompID": "client",
+      "sessionAlias": "client1",
+      "socketConnectHost": "fix-demo-server2",
+      "socketConnectPort": "8080",
+      "targetCompID": "FGW"
+    }
+  ],
+  "useDataDictionary": "Y"
+}
