@@ -63,7 +63,7 @@ public class MainTest extends Main {
         FixBean fixBean1 = new FixBean();
         fixBean1.setSenderCompID("client2");
         fixBean1.setTargetCompID("server");
-        fixBean1.setSocketConnectPort(9878);
+        fixBean1.setSocketConnectPort(9877);
         fixBean1.setSessionAlias("client2");
 
         List<FixBean> fixBeans = new ArrayList<>();
@@ -153,8 +153,8 @@ public class MainTest extends Main {
 
         Thread.sleep(10000);
 
-        messageRouter.sendToSubscriber("xmm", messageGroupBatch);
-        messageRouter.sendToSubscriber("xmm2", messageGroupBatch2);
+        messageRouter.sendToSubscriber("client1", messageGroupBatch);
+        messageRouter.sendToSubscriber("client2", messageGroupBatch2);
 
         Thread.sleep(10000);
 
