@@ -87,31 +87,35 @@ public class BaseFixBean {
         }
     }
 
-    public void setFileStorePath(String fileStorePath) {
-        if (StringUtils.isBlank(fileStorePath)) {
-            throw new IllegalArgumentException("fileStorePath must not be null or blank.");
+    private void isPositive(String tagName, long tagValue) {
+        if (tagValue < 0) {
+            throw new IllegalArgumentException(tagName + " must not be negative.");
         }
+    }
+
+    private void notNullOrBlank(String tagName, String tagValue) {
+        if (StringUtils.isBlank(tagValue)) {
+            throw new IllegalArgumentException(tagName + " must not be null or blank.");
+        }
+    }
+
+    public void setFileStorePath(String fileStorePath) {
+        notNullOrBlank("FileStorePath", fileStorePath);
         this.fileStorePath = fileStorePath;
     }
 
     public void setFileLogPath(String fileLogPath) {
-        if (StringUtils.isBlank(fileLogPath)) {
-            throw new IllegalArgumentException("FileLogPath must not be null or blank.");
-        }
+        notNullOrBlank("FileLogFile", fileLogPath);
         this.fileLogPath = fileLogPath;
     }
 
     public void setReconnectInterval(long reconnectInterval) {
-        if (reconnectInterval < 0) {
-            throw new IllegalArgumentException("Reconnect interval must not be negative.");
-        }
+        isPositive("ReconnectionInterval", reconnectInterval);
         this.reconnectInterval = reconnectInterval;
     }
 
     public void setHeartBtInt(long heartBtInt) {
-        if (heartBtInt < 0) {
-            throw new IllegalArgumentException("heartBtInt must not be negative.");
-        }
+        isPositive("HeartBtInt", heartBtInt);
         this.heartBtInt = heartBtInt;
     }
 
@@ -161,9 +165,7 @@ public class BaseFixBean {
     }
 
     public void setMaxLatency(long maxLatency) {
-        if (maxLatency < 0) {
-            throw new IllegalArgumentException("MaxLatency must not be negative.");
-        }
+        isPositive("MaxLatency", maxLatency);
         this.maxLatency = maxLatency;
     }
 
@@ -198,16 +200,12 @@ public class BaseFixBean {
     }
 
     public void setLogonTimeout(long logonTimeout) {
-        if (logonTimeout < 0) {
-            throw new IllegalArgumentException("LogonTimeout must not be negative.");
-        }
+        isPositive("LogonTimeout", logonTimeout);
         this.logonTimeout = logonTimeout;
     }
 
     public void setLogoutTimeout(long logoutTimeout) {
-        if (logonTimeout < 0) {
-            throw new IllegalArgumentException("LogoutTimeout must not be negative.");
-        }
+        isPositive("LogoutTimeout", logoutTimeout);
         this.logoutTimeout = logoutTimeout;
     }
 

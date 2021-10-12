@@ -79,8 +79,7 @@ spec:
     grpcStartControl: true
     autoStart: true
     autoStopAfter: 300
-    storageOnDemand: false
-    queueLength: 1000 
+    queueCapacity: 10000 
     fileStorePath: storage/messages/
     fileLogPath: outgoing
     connectionType: initiator
@@ -136,6 +135,3 @@ spec:
         memory: 100Mi
         cpu: 20m
 ```
-	
-	
-	

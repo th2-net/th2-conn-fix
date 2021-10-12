@@ -4,7 +4,9 @@ import com.exactpro.th2.common.event.Event;
 import com.exactpro.th2.common.grpc.AnyMessage;
 import com.exactpro.th2.common.grpc.ConnectionID;
 import com.exactpro.th2.common.grpc.EventBatch;
+import com.exactpro.th2.common.grpc.EventID;
 import com.exactpro.th2.common.grpc.MessageGroupBatch;
+import com.exactpro.th2.common.grpc.MessageID;
 import com.exactpro.th2.common.schema.factory.CommonFactory;
 import com.exactpro.th2.common.schema.grpc.router.GrpcRouter;
 import com.exactpro.th2.common.schema.message.MessageListener;
@@ -43,6 +45,7 @@ import java.nio.file.Files;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
@@ -141,7 +144,7 @@ public class Main {
             String defaultApplVerID = fixBean.getDefaultApplVerID();
             String dictionary = Objects.requireNonNull(dictionaries.get(beginString), () -> "No dictionary for: " + beginString);
             if (beginString.equals("FIXT.1.1")) {
-                String appDataDictionary = Objects.requireNonNull(dictionaries.get("FIX.5.0"), () -> "No dictionary for: " + defaultApplVerID);
+                String appDataDictionary = Objects.requireNonNull(dictionaries.get(defaultApplVerID), () -> "No dictionary for: " + defaultApplVerID);
                 fixBean.setAppDataDictionary(appDataDictionary);
                 fixBean.setTransportDataDictionary(dictionary);
             } else {
@@ -177,10 +180,10 @@ public class Main {
             connectionIDs.put(sessionId, ConnectionID.newBuilder().setSessionAlias(sessionAlias).build());
         });
 
-        Event curEvent = MessageRouterUtils.storeEvent(eventRouter, Event.start(), null);
-        curEvent.name("FIX client " + String.join(":", sessionIDs.keySet()) + " " + Instant.now());
-        curEvent.type("Microservice");
-        String rootEventId = curEvent.getId();
+        Event currentEvent = MessageRouterUtils.storeEvent(eventRouter, Event.start(), null);
+        currentEvent.name("FIX client " + String.join(":", sessionIDs.keySet()) + " " + Instant.now());
+        currentEvent.type("Microservice");
+        String rootEventId = currentEvent.getId();
 
         FixClient fixClient = new FixClient(new SessionSettings(configFile.getAbsolutePath()),
                 messageRouter, eventRouter, connectionIDs, rootEventId, settings.queueCapacity);
@@ -216,6 +219,12 @@ public class Main {
                         Message fixMessage = MessageUtils.parse(session, strMessage);
                         if (!session.send(fixMessage)) {
                             LOGGER.error("Logon rejected, message not sent");
+
+                            EventID eventID = message.getMessage().getParentEventId();
+                            String parentEventID = eventID.getId();
+                            MessageID messageID = message.getMessage().getMetadata().getId();
+                            currentEvent.messageID(messageID).type("Error").status(Event.Status.FAILED);
+                            MessageRouterUtils.storeEvent(eventRouter, currentEvent, parentEventID);
                         }
                     }
                 } catch (Exception e) {
@@ -288,8 +297,8 @@ public class Main {
                             "Repeating of session alias: \"" + sessionAlias + "\" or sessionID: \"" + sessionID + "\"");
                 }
             }
-            this.sessionIDsByAliases = Map.copyOf(sessionIDsByAliases);
-            this.sessionSettings = List.copyOf(sessionSettings);
+            this.sessionIDsByAliases = Collections.unmodifiableMap(sessionIDsByAliases);
+            this.sessionSettings = Collections.unmodifiableList(sessionSettings);
         }
 
         public void setQueueCapacity(int queueCapacity) {
