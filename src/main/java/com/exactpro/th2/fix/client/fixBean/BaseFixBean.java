@@ -81,137 +81,117 @@ public class BaseFixBean {
         return sb;
     }
 
-    private void validateTagValue(String tagName, String tagValue) {
+    private String requireYesOrNo(String tagName, String tagValue) {
         if (!tagValue.equals("Y") && !tagValue.equals("N")) {
             throw new IllegalArgumentException(tagName + " must be \"Y\" or \"N\".");
         }
+        return tagValue;
     }
 
-    private void isPositive(String tagName, long tagValue) {
+    private long requireIsPositive(String tagName, long tagValue) {
         if (tagValue < 0) {
             throw new IllegalArgumentException(tagName + " must not be negative.");
         }
+        return tagValue;
     }
 
-    private void notNullOrBlank(String tagName, String tagValue) {
+    private String requireNotNullOrBlank(String tagName, String tagValue) {
         if (StringUtils.isBlank(tagValue)) {
             throw new IllegalArgumentException(tagName + " must not be null or blank.");
         }
+        return tagValue;
     }
 
     public void setFileStorePath(String fileStorePath) {
-        notNullOrBlank("FileStorePath", fileStorePath);
-        this.fileStorePath = fileStorePath;
+        this.fileStorePath = requireNotNullOrBlank("FileStorePath", fileStorePath);
     }
 
     public void setFileLogPath(String fileLogPath) {
-        notNullOrBlank("FileLogFile", fileLogPath);
-        this.fileLogPath = fileLogPath;
+        this.fileLogPath = requireNotNullOrBlank("FileLogFile", fileLogPath);
     }
 
     public void setReconnectInterval(long reconnectInterval) {
-        isPositive("ReconnectionInterval", reconnectInterval);
-        this.reconnectInterval = reconnectInterval;
+        this.reconnectInterval = requireIsPositive("ReconnectionInterval", reconnectInterval);
     }
 
     public void setHeartBtInt(long heartBtInt) {
-        isPositive("HeartBtInt", heartBtInt);
-        this.heartBtInt = heartBtInt;
+        this.heartBtInt = requireIsPositive("HeartBtInt", heartBtInt);
     }
 
     public void setValidateUserDefinedFields(String validateUserDefinedFields) {
-        validateTagValue("ValidateUserDefinedFields", validateUserDefinedFields);
-        this.validateUserDefinedFields = validateUserDefinedFields;
+        this.validateUserDefinedFields = requireYesOrNo("ValidateUserDefinedFields", validateUserDefinedFields);
     }
 
     public void setValidateIncomingMessage(String validateIncomingMessage) {
-        validateTagValue("ValidateIncomingMessage", validateIncomingMessage);
-        this.validateIncomingMessage = validateIncomingMessage;
+        this.validateIncomingMessage = requireYesOrNo("ValidateIncomingMessage", validateIncomingMessage);
     }
 
     public void setRefreshOnLogon(String refreshOnLogon) {
-        validateTagValue("RefreshOnLogon", refreshOnLogon);
-        this.refreshOnLogon = refreshOnLogon;
+        this.refreshOnLogon = requireYesOrNo("RefreshOnLogon", refreshOnLogon);
     }
 
     public void setNonStopSession(String nonStopSession) {
-        validateTagValue("NonStopSession", nonStopSession);
-        this.nonStopSession = nonStopSession;
+        this.nonStopSession = requireYesOrNo("NonStopSession", nonStopSession);
     }
 
     public void setResetOnLogon(String resetOnLogon) {
-        validateTagValue("ResetOnLogon", resetOnLogon);
-        this.resetOnLogon = resetOnLogon;
+        this.resetOnLogon = requireYesOrNo("ResetOnLogon", resetOnLogon);
     }
 
     public void setResetOnLogout(String resetOnLogout) {
-        validateTagValue("ResetOnLogout", resetOnLogout);
-        this.resetOnLogout = resetOnLogout;
+        this.resetOnLogout = requireYesOrNo("ResetOnLogout", resetOnLogout);
     }
 
     public void setResetOnDisconnect(String resetOnDisconnect) {
-        validateTagValue("ResetOnDisconnect", resetOnDisconnect);
-        this.resetOnDisconnect = resetOnDisconnect;
+        this.resetOnDisconnect = requireYesOrNo("ResetOnDisconnect", resetOnDisconnect);
     }
 
     public void setLogHeartBeats(String logHeartBeats) {
-        validateTagValue("LogHeartBeats", logHeartBeats);
-        this.logHeartBeats = logHeartBeats;
+        this.logHeartBeats = requireYesOrNo("LogHeartBeats", logHeartBeats);
     }
 
     public void setCheckLatency(String checkLatency) {
-        validateTagValue("CheckLatency", checkLatency);
-        this.checkLatency = checkLatency;
+        this.checkLatency = requireYesOrNo("CheckLatency", checkLatency);
     }
 
     public void setMaxLatency(long maxLatency) {
-        isPositive("MaxLatency", maxLatency);
-        this.maxLatency = maxLatency;
+        this.maxLatency = requireIsPositive("MaxLatency", maxLatency);
     }
 
     public void setAllowUnknownMsgFields(String allowUnknownMsgFields) {
-        validateTagValue("AllowUnknownMsgFields", allowUnknownMsgFields);
-        this.allowUnknownMsgFields = allowUnknownMsgFields;
+        this.allowUnknownMsgFields = requireYesOrNo("AllowUnknownMsgFields", allowUnknownMsgFields);
     }
 
     public void setRejectInvalidMessage(String rejectInvalidMessage) {
-        validateTagValue("RejectInvalidMessage", rejectInvalidMessage);
-        this.rejectInvalidMessage = rejectInvalidMessage;
+        this.rejectInvalidMessage = requireYesOrNo("RejectInvalidMessage", rejectInvalidMessage);
     }
 
     public void setValidateFieldsOutOfOrder(String validateFieldsOutOfOrder) {
-        validateTagValue("ValidateFieldsOutOfOrder", validateFieldsOutOfOrder);
-        this.validateFieldsOutOfOrder = validateFieldsOutOfOrder;
+        this.validateFieldsOutOfOrder = requireYesOrNo("ValidateFieldsOutOfOrder", validateFieldsOutOfOrder);
     }
 
     public void setValidateFieldsHaveValues(String validateFieldsHaveValues) {
-        validateTagValue("ValidateFieldsHaveValues", validateFieldsHaveValues);
-        this.validateFieldsHaveValues = validateFieldsHaveValues;
+        this.validateFieldsHaveValues = requireYesOrNo("ValidateFieldsHaveValues", validateFieldsHaveValues);
     }
 
     public void setSocketUseSSL(String socketUseSSL) {
-        validateTagValue("SocketUseSSL", socketUseSSL);
-        this.socketUseSSL = socketUseSSL;
+        this.socketUseSSL = requireYesOrNo("SocketUseSSL", socketUseSSL);
     }
 
     public void setValidateSequenceNumbers(String validateSequenceNumbers) {
-        validateTagValue("ValidateSequenceNumbers", validateSequenceNumbers);
-        this.validateSequenceNumbers = validateSequenceNumbers;
+        this.validateSequenceNumbers = requireYesOrNo("ValidateSequenceNumbers", validateSequenceNumbers);
     }
 
     public void setLogonTimeout(long logonTimeout) {
-        isPositive("LogonTimeout", logonTimeout);
-        this.logonTimeout = logonTimeout;
+        this.logonTimeout = requireIsPositive("LogonTimeout", logonTimeout);
     }
 
     public void setLogoutTimeout(long logoutTimeout) {
-        isPositive("LogoutTimeout", logoutTimeout);
-        this.logoutTimeout = logoutTimeout;
+        this.logoutTimeout = requireIsPositive("LogoutTimeout", logoutTimeout);
     }
 
     public void setRequiresOrigSendingTime(String requiresOrigSendingTime) {
-        validateTagValue("RequiresOrigSendingTime", requiresOrigSendingTime);
-        this.requiresOrigSendingTime = requiresOrigSendingTime;
+        this.requiresOrigSendingTime = requireYesOrNo("RequiresOrigSendingTime", requiresOrigSendingTime);
     }
 
     public String getRequiresOrigSendingTime() {

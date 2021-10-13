@@ -23,7 +23,6 @@ import com.exactpro.th2.fix.client.util.MessageUtil;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.json.JsonMapper;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.slf4j.Logger;
@@ -42,6 +41,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -114,41 +114,45 @@ public class Main {
 
         JsonMapper mapper = JsonMapper.builder().build();
         Settings settings = factory.getCustomConfiguration(Settings.class, mapper);
-
-        Map<String, String> dictionaries = new HashMap<>();
+        Path temporaryDirectory = Files.createTempDirectory("temporaryDirectory");
 
         try (InputStream rawBase64 = factory.readDictionary();
              ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(Base64
                      .getDecoder()
                      .decode(rawBase64.readAllBytes()));
              ZipInputStream zipInputStream = new ZipInputStream(byteArrayInputStream)) {
+
             ZipEntry zipEntry;
             while ((zipEntry = zipInputStream.getNextEntry()) != null) {
                 String zipName = zipEntry.getName();
                 if (!DICTIONARY_FILE_NAME.matcher(zipName).matches()) {
                     throw new IncorrectFixFileNameException("Incorrect file name for FIX dictionary");
                 }
-                File dataDict = File.createTempFile(zipEntry.getName(), "");
-                Files.write(dataDict.toPath(), zipInputStream.readAllBytes());
-                String dictionaryPath = dataDict.getAbsolutePath();
-                new DataDictionary(dictionaryPath); //check that xml file contains the correct values
-                dictionaries.put(FilenameUtils.getBaseName(zipName), dictionaryPath);
-                dataDict.deleteOnExit();
+                Path pathToDictionary = Files.createFile(getPathToDictionary(temporaryDirectory, zipName));
+                Files.write(pathToDictionary, zipInputStream.readAllBytes());
+                new DataDictionary(pathToDictionary.toString()); //check that xml file contains the correct values
             }
         } catch (IOException | ConfigError e) {
             throw new Exception("Failed to create DataDictionary", e);
         }
 
-        for (FixBean fixBean : settings.sessionSettings) {
-            String beginString = fixBean.getBeginString();
-            String defaultApplVerID = fixBean.getDefaultApplVerID();
-            String dictionary = Objects.requireNonNull(dictionaries.get(beginString), () -> "No dictionary for: " + beginString);
-            if (beginString.equals("FIXT.1.1")) {
-                String appDataDictionary = Objects.requireNonNull(dictionaries.get(defaultApplVerID), () -> "No dictionary for: " + defaultApplVerID);
-                fixBean.setAppDataDictionary(appDataDictionary);
-                fixBean.setTransportDataDictionary(dictionary);
+        for (int i = 0; i < settings.sessionSettings.size(); i++) {
+            String appDataDictionary = settings.sessionSettings.get(i).getAppDataDictionary();
+            String transportDataDictionary = settings.sessionSettings.get(i).getTransportDataDictionary();
+            String dataDictionary = settings.sessionSettings.get(i).getDataDictionary();
+            if (dataDictionary != null) {
+                Path pathToDataDictionary = getPathToDictionary(temporaryDirectory, dataDictionary);
+                settings.sessionSettings.get(i).setDataDictionary(pathToDataDictionary.toString());
             } else {
-                fixBean.setDataDictionary(dictionary);
+                if (transportDataDictionary == null || appDataDictionary == null) {
+                    String sessionID = FixBeanUtil.getSessionID(settings.sessionSettings.get(i)).toString();
+                    throw new IllegalStateException("Failed to set dictionary path for session " + sessionID);
+                }
+                Path pathToTransportDataDictionary = getPathToDictionary(temporaryDirectory, transportDataDictionary);
+                settings.sessionSettings.get(i).setTransportDataDictionary(pathToTransportDataDictionary.toString());
+
+                Path pathToAppDataDictionary = getPathToDictionary(temporaryDirectory, appDataDictionary);
+                settings.sessionSettings.get(i).setAppDataDictionary(pathToAppDataDictionary.toString());
             }
         }
 
@@ -168,6 +172,10 @@ public class Main {
 
     }
 
+    public static Path getPathToDictionary(Path directory, String pathToDictionary) {
+        return Path.of(directory + File.separator + pathToDictionary);
+    }
+
     public static void run(Settings settings, MessageRouter<MessageGroupBatch> messageRouter, MessageRouter<EventBatch> eventRouter,
                            GrpcRouter grpcRouter, Deque<Resources> resources) throws CreatingConfigFileException, ConfigError, IncorrectDataFormat {
 
@@ -180,13 +188,13 @@ public class Main {
             connectionIDs.put(sessionId, ConnectionID.newBuilder().setSessionAlias(sessionAlias).build());
         });
 
-        Event currentEvent = MessageRouterUtils.storeEvent(eventRouter, Event.start(), null);
-        currentEvent.name("FIX client " + String.join(":", sessionIDs.keySet()) + " " + Instant.now());
-        currentEvent.type("Microservice");
-        String rootEventId = currentEvent.getId();
+        Event rootEvent = MessageRouterUtils.storeEvent(eventRouter, Event.start(), null);
+        rootEvent.name("FIX client " + String.join(":", sessionIDs.keySet()) + " " + Instant.now());
+        rootEvent.type("Microservice");
+        String rootEventID = rootEvent.getId();
 
         FixClient fixClient = new FixClient(new SessionSettings(configFile.getAbsolutePath()),
-                messageRouter, eventRouter, connectionIDs, rootEventId, settings.queueCapacity);
+                messageRouter, eventRouter, connectionIDs, rootEventID, settings.queueCapacity);
 
         configFile.deleteOnExit();
         resources.add(new Resources("client", fixClient::stop));
@@ -221,15 +229,15 @@ public class Main {
                             LOGGER.error("Logon rejected, message not sent");
 
                             EventID eventID = message.getMessage().getParentEventId();
-                            String parentEventID = eventID.getId();
+                            String parentEventID = eventID != null ? eventID.getId() : rootEventID;
                             MessageID messageID = message.getMessage().getMetadata().getId();
-                            currentEvent.messageID(messageID).type("Error").status(Event.Status.FAILED);
-                            MessageRouterUtils.storeEvent(eventRouter, currentEvent, parentEventID);
+                            rootEvent.messageID(messageID).type("Error").status(Event.Status.FAILED);
+                            MessageRouterUtils.storeEvent(eventRouter, rootEvent, parentEventID);
                         }
                     }
                 } catch (Exception e) {
                     LOGGER.error("Failed to handle message group: {}", toJson(group), e);
-                    MessageRouterUtils.storeEvent(eventRouter, rootEventId, "Failed to handle message group: " + toJson(group), "Error", e);
+                    MessageRouterUtils.storeEvent(eventRouter, rootEventID, "Failed to handle message group: " + toJson(group), "Error", e);
                 }
             });
         };
