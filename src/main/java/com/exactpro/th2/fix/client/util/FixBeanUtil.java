@@ -3,6 +3,7 @@ package com.exactpro.th2.fix.client.util;
 import com.exactpro.th2.fix.client.Main.Settings;
 import com.exactpro.th2.fix.client.exceptions.CreatingConfigFileException;
 import com.exactpro.th2.fix.client.fixBean.FixBean;
+import org.apache.commons.lang3.StringUtils;
 import quickfix.SessionID;
 
 import java.io.File;
@@ -49,4 +50,10 @@ public class FixBeanUtil {
                 fixBean.getTargetSubID(), fixBean.getTargetLocationID(), "");
     }
 
+    public static String requireNotNullOrBlank(String tagName, String tagValue) {
+        if (StringUtils.isBlank(tagValue)) {
+            throw new IllegalArgumentException(tagName + " must not be null or blank.");
+        }
+        return tagValue;
+    }
 }

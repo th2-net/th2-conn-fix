@@ -64,7 +64,7 @@ public class Main {
 
     private static final String INPUT_QUEUE_ATTRIBUTE = "send";
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
-    private static final Pattern DICTIONARY_FILE_NAME = Pattern.compile("FIX(T)?\\.[4-5]?(1)?\\.[0-4]?(1)?\\.xml");
+    private static final Pattern DICTIONARY_FILE_NAME = Pattern.compile("^[\\w.]+\\.xml");
 
     public static class Resources {
         private final String name;
@@ -114,45 +114,53 @@ public class Main {
 
         JsonMapper mapper = JsonMapper.builder().build();
         Settings settings = factory.getCustomConfiguration(Settings.class, mapper);
-        Path temporaryDirectory = Files.createTempDirectory("temporaryDirectory");
+        Path temporaryDirectory = Files.createTempDirectory("conn-qfj-dictionaries");
 
         try (InputStream rawBase64 = factory.readDictionary();
              ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(Base64
                      .getDecoder()
                      .decode(rawBase64.readAllBytes()));
              ZipInputStream zipInputStream = new ZipInputStream(byteArrayInputStream)) {
-
-            ZipEntry zipEntry;
-            while ((zipEntry = zipInputStream.getNextEntry()) != null) {
-                String zipName = zipEntry.getName();
-                if (!DICTIONARY_FILE_NAME.matcher(zipName).matches()) {
-                    throw new IncorrectFixFileNameException("Incorrect file name for FIX dictionary");
+            ZipEntry zipEntry = null;
+            try {
+                while ((zipEntry = zipInputStream.getNextEntry()) != null) {
+                    String zipName = zipEntry.getName();
+                    if (!DICTIONARY_FILE_NAME.matcher(zipName).matches()) {
+                        throw new IncorrectFixFileNameException("Incorrect file name for FIX dictionary");
+                    }
+                    Path pathToDictionary = Files.createFile(getPathToDictionary(temporaryDirectory, Path.of(zipName)));
+                    Files.write(pathToDictionary, zipInputStream.readAllBytes());
+                    new DataDictionary(pathToDictionary.toString()); //check that xml file contains the correct values
                 }
-                Path pathToDictionary = Files.createFile(getPathToDictionary(temporaryDirectory, zipName));
-                Files.write(pathToDictionary, zipInputStream.readAllBytes());
-                new DataDictionary(pathToDictionary.toString()); //check that xml file contains the correct values
+            } catch (IncorrectFixFileNameException | ConfigError e) {
+                throw new Exception("Failed to unzip dictionaries along the path: " + zipEntry.getName(), e);
             }
-        } catch (IOException | ConfigError e) {
+        } catch (IOException e) {
             throw new Exception("Failed to create DataDictionary", e);
         }
 
         for (int i = 0; i < settings.sessionSettings.size(); i++) {
-            String appDataDictionary = settings.sessionSettings.get(i).getAppDataDictionary();
-            String transportDataDictionary = settings.sessionSettings.get(i).getTransportDataDictionary();
-            String dataDictionary = settings.sessionSettings.get(i).getDataDictionary();
-            if (dataDictionary != null) {
-                Path pathToDataDictionary = getPathToDictionary(temporaryDirectory, dataDictionary);
-                settings.sessionSettings.get(i).setDataDictionary(pathToDataDictionary.toString());
-            } else {
+            if (settings.sessionSettings.get(i).getBeginString().equals("FIXT.1.1")) {
+
+                Path appDataDictionary = settings.sessionSettings.get(i).getAppDataDictionary();
+                Path transportDataDictionary = settings.sessionSettings.get(i).getTransportDataDictionary();
+
                 if (transportDataDictionary == null || appDataDictionary == null) {
                     String sessionID = FixBeanUtil.getSessionID(settings.sessionSettings.get(i)).toString();
                     throw new IllegalStateException("Failed to set dictionary path for session " + sessionID);
                 }
                 Path pathToTransportDataDictionary = getPathToDictionary(temporaryDirectory, transportDataDictionary);
                 settings.sessionSettings.get(i).setTransportDataDictionary(pathToTransportDataDictionary.toString());
-
                 Path pathToAppDataDictionary = getPathToDictionary(temporaryDirectory, appDataDictionary);
                 settings.sessionSettings.get(i).setAppDataDictionary(pathToAppDataDictionary.toString());
+            } else {
+                Path dataDictionary = settings.sessionSettings.get(i).getDataDictionary();
+                if (dataDictionary == null) {
+                    String sessionID = FixBeanUtil.getSessionID(settings.sessionSettings.get(i)).toString();
+                    throw new IllegalStateException("Failed to set dictionary path for session " + sessionID);
+                }
+                Path pathToDataDictionary = getPathToDictionary(temporaryDirectory, dataDictionary);
+                settings.sessionSettings.get(i).setDataDictionary(pathToDataDictionary.toString());
             }
         }
 
@@ -172,8 +180,8 @@ public class Main {
 
     }
 
-    public static Path getPathToDictionary(Path directory, String pathToDictionary) {
-        return Path.of(directory + File.separator + pathToDictionary);
+    public static Path getPathToDictionary(Path directoriesDirectory, Path dictionaryPath) {
+        return directoriesDirectory.resolve(dictionaryPath);
     }
 
     public static void run(Settings settings, MessageRouter<MessageGroupBatch> messageRouter, MessageRouter<EventBatch> eventRouter,
@@ -229,10 +237,10 @@ public class Main {
                             LOGGER.error("Logon rejected, message not sent");
 
                             EventID eventID = message.getMessage().getParentEventId();
-                            String parentEventID = eventID != null ? eventID.getId() : rootEventID;
+                            String parentEventID = eventID.getId().isEmpty() ? rootEventID : eventID.getId();
                             MessageID messageID = message.getMessage().getMetadata().getId();
-                            rootEvent.messageID(messageID).type("Error").status(Event.Status.FAILED);
-                            MessageRouterUtils.storeEvent(eventRouter, rootEvent, parentEventID);
+                            Event event = Event.start().messageID(messageID).type("Error").status(Event.Status.FAILED);
+                            MessageRouterUtils.storeEvent(eventRouter, event, parentEventID);
                         }
                     }
                 } catch (Exception e) {

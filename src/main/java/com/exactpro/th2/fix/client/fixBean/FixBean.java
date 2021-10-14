@@ -1,11 +1,13 @@
 package com.exactpro.th2.fix.client.fixBean;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
+import java.nio.file.Path;
+
 import static com.exactpro.th2.fix.client.util.FixBeanUtil.addToConfig;
+import static com.exactpro.th2.fix.client.util.FixBeanUtil.requireNotNullOrBlank;
 
 public class FixBean extends BaseFixBean {
 
@@ -23,9 +25,9 @@ public class FixBean extends BaseFixBean {
     protected String targetCompID = null;
     protected String targetSubID = null;
     protected String targetLocationID = null;
-    protected String dataDictionary = null;
-    protected String appDataDictionary = null;
-    protected String transportDataDictionary = null;
+    protected Path dataDictionary = null;
+    protected Path appDataDictionary = null;
+    protected Path transportDataDictionary = null;
     protected String defaultApplVerID = "9";
     protected String sessionAlias = null;
 
@@ -49,24 +51,15 @@ public class FixBean extends BaseFixBean {
     }
 
     public void setBeginString(String beginString) {
-        if (StringUtils.isBlank(beginString)) {
-            throw new IllegalArgumentException("beginString must not be null or blank.");
-        }
-        this.beginString = beginString;
+        this.beginString = requireNotNullOrBlank("BeginString", beginString);
     }
 
     public void setSocketConnectHost(String socketConnectHost) {
-        if (StringUtils.isBlank(socketConnectHost)) {
-            throw new IllegalArgumentException("socketConnectHost must not be null or blank.");
-        }
-        this.socketConnectHost = socketConnectHost;
+        this.socketConnectHost = requireNotNullOrBlank("SocketConnectHost", socketConnectHost);
     }
 
     public void setTargetCompID(String targetCompID) {
-        if (StringUtils.isBlank(targetCompID)) {
-            throw new IllegalArgumentException("TargetCompID must not be null or blank.");
-        }
-        this.targetCompID = targetCompID;
+        this.targetCompID = requireNotNullOrBlank("TargetCompID", targetCompID);
     }
 
     public void setSocketConnectPort(long socketConnectPort) {
@@ -77,89 +70,59 @@ public class FixBean extends BaseFixBean {
     }
 
     public void setSenderCompID(String senderCompID) {
-        if (StringUtils.isBlank(senderCompID)) {
-            throw new IllegalArgumentException("SenderCompId must not be null or blank.");
-        }
-        this.senderCompID = senderCompID;
+        this.senderCompID = requireNotNullOrBlank("SenderCompID", senderCompID);
     }
 
     public void setDataDictionary(String dataDictionary) {
-        if (StringUtils.isBlank(dataDictionary)) {
-            throw new IllegalArgumentException("DataDictionary must not be null or blank.");
-        }
-        this.dataDictionary = dataDictionary;
+        this.dataDictionary = Path.of(requireNotNullOrBlank("DataDictionary", dataDictionary));
     }
 
     public void setSessionAlias(String sessionAlias) {
-        if (StringUtils.isBlank(sessionAlias)) {
-            throw new IllegalArgumentException("SessionAlias must not be null or blank.");
-        }
-        this.sessionAlias = sessionAlias;
+        this.sessionAlias = requireNotNullOrBlank("SessionAlias", sessionAlias);
     }
 
     public void setSenderSubID(String senderSubID) {
-        if (StringUtils.isBlank(senderSubID)) {
-            throw new IllegalArgumentException("SenderSubID must not be null or blank.");
-        }
-        this.senderSubID = senderSubID;
+        this.senderSubID = requireNotNullOrBlank("SenderSubID", senderSubID);
     }
 
     public void setSenderLocationID(String senderLocationID) {
-        if (StringUtils.isBlank(senderLocationID)) {
-            throw new IllegalArgumentException("SenderLocationID must not be null or blank.");
-        }
-        this.senderLocationID = senderLocationID;
+        this.senderLocationID = requireNotNullOrBlank("SenderLocationID", senderLocationID);
     }
 
     public void setTargetSubID(String targetSubID) {
-        if (StringUtils.isBlank(targetSubID)) {
-            throw new IllegalArgumentException("TargetSubID must not be null or blank.");
-        }
-        this.targetSubID = targetSubID;
+        this.targetSubID = requireNotNullOrBlank("TargetSubID", targetSubID);
     }
 
     public void setTargetLocationID(String targetLocationID) {
-        if (StringUtils.isBlank(targetLocationID)) {
-            throw new IllegalArgumentException("TargetLocationID must not be null or blank.");
-        }
-        this.targetLocationID = targetLocationID;
+        this.targetLocationID = requireNotNullOrBlank("TargetLocationID", targetLocationID);
+    }
+
+    public void setDefaultApplVerID(String defaultApplVerID) {
+        this.defaultApplVerID = requireNotNullOrBlank("DefaultApplVerID", defaultApplVerID);
+    }
+
+    public void setAppDataDictionary(String appDataDictionary) {
+        this.appDataDictionary = Path.of(requireNotNullOrBlank("AppDataDictionary", appDataDictionary));
+    }
+
+    public void setTransportDataDictionary(String transportDataDictionary) {
+        this.transportDataDictionary = Path.of(requireNotNullOrBlank("TransportDataDictionary", transportDataDictionary));
+    }
+
+    public Path getTransportDataDictionary() {
+        return transportDataDictionary;
     }
 
     public String getDefaultApplVerID() {
         return defaultApplVerID;
     }
 
-    public void setDefaultApplVerID(String defaultApplVerID) {
-        if (StringUtils.isBlank(defaultApplVerID)) {
-            throw new IllegalArgumentException("DefaultApplVerID must not be null or blank.");
-        }
-        this.defaultApplVerID = defaultApplVerID;
-    }
-
     public String getSessionAlias() {
         return sessionAlias;
     }
 
-    public String getAppDataDictionary() {
+    public Path getAppDataDictionary() {
         return appDataDictionary;
-    }
-
-    public void setAppDataDictionary(String appDataDictionary) {
-        if (StringUtils.isBlank(appDataDictionary)) {
-            throw new IllegalArgumentException("AppDataDictionary must not be null or blank.");
-        }
-        this.appDataDictionary = appDataDictionary;
-    }
-
-    public String getTransportDataDictionary() {
-        return transportDataDictionary;
-    }
-
-    public void setTransportDataDictionary(String transportDataDictionary) {
-        if (StringUtils.isBlank(transportDataDictionary)) {
-            throw new IllegalArgumentException("TransportDataDictionary must not be null or blank.");
-        }
-        this.transportDataDictionary = transportDataDictionary;
     }
 
     public String getSenderSubID() {
@@ -178,7 +141,7 @@ public class FixBean extends BaseFixBean {
         return targetLocationID;
     }
 
-    public String getDataDictionary() {
+    public Path getDataDictionary() {
         return dataDictionary;
     }
 
@@ -202,7 +165,6 @@ public class FixBean extends BaseFixBean {
         return socketConnectPort;
     }
 
-
     @Override
     public String toString() {
         return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE)
@@ -217,6 +179,9 @@ public class FixBean extends BaseFixBean {
                 .append("TargetSubID", targetSubID)
                 .append("TargetLocationID", targetLocationID)
                 .append("DataDictionary", dataDictionary)
+                .append("AppDataDictionary", appDataDictionary)
+                .append("TransportDataDictionary", transportDataDictionary)
+                .append("DefaultApplVerID", defaultApplVerID)
                 .append("SessionAlias", sessionAlias)
                 .toString();
     }

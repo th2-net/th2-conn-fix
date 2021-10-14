@@ -2,11 +2,11 @@ package com.exactpro.th2.fix.client.fixBean;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
 import static com.exactpro.th2.fix.client.util.FixBeanUtil.addToConfig;
+import static com.exactpro.th2.fix.client.util.FixBeanUtil.requireNotNullOrBlank;
 
 public class BaseFixBean {
 
@@ -88,16 +88,9 @@ public class BaseFixBean {
         return tagValue;
     }
 
-    private long requireIsPositive(String tagName, long tagValue) {
+    private long requirePositive(String tagName, long tagValue) {
         if (tagValue < 0) {
             throw new IllegalArgumentException(tagName + " must not be negative.");
-        }
-        return tagValue;
-    }
-
-    private String requireNotNullOrBlank(String tagName, String tagValue) {
-        if (StringUtils.isBlank(tagValue)) {
-            throw new IllegalArgumentException(tagName + " must not be null or blank.");
         }
         return tagValue;
     }
@@ -111,11 +104,11 @@ public class BaseFixBean {
     }
 
     public void setReconnectInterval(long reconnectInterval) {
-        this.reconnectInterval = requireIsPositive("ReconnectionInterval", reconnectInterval);
+        this.reconnectInterval = requirePositive("ReconnectionInterval", reconnectInterval);
     }
 
     public void setHeartBtInt(long heartBtInt) {
-        this.heartBtInt = requireIsPositive("HeartBtInt", heartBtInt);
+        this.heartBtInt = requirePositive("HeartBtInt", heartBtInt);
     }
 
     public void setValidateUserDefinedFields(String validateUserDefinedFields) {
@@ -155,7 +148,7 @@ public class BaseFixBean {
     }
 
     public void setMaxLatency(long maxLatency) {
-        this.maxLatency = requireIsPositive("MaxLatency", maxLatency);
+        this.maxLatency = requirePositive("MaxLatency", maxLatency);
     }
 
     public void setAllowUnknownMsgFields(String allowUnknownMsgFields) {
@@ -183,11 +176,11 @@ public class BaseFixBean {
     }
 
     public void setLogonTimeout(long logonTimeout) {
-        this.logonTimeout = requireIsPositive("LogonTimeout", logonTimeout);
+        this.logonTimeout = requirePositive("LogonTimeout", logonTimeout);
     }
 
     public void setLogoutTimeout(long logoutTimeout) {
-        this.logoutTimeout = requireIsPositive("LogoutTimeout", logoutTimeout);
+        this.logoutTimeout = requirePositive("LogoutTimeout", logoutTimeout);
     }
 
     public void setRequiresOrigSendingTime(String requiresOrigSendingTime) {
