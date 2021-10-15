@@ -123,7 +123,7 @@ public class Main {
             try {
                 while ((zipEntry = zipInputStream.getNextEntry()) != null) {
                     Path filePath = Path.of(zipEntry.getName());
-                    if (!filePath.endsWith(".xml")) {
+                    if (!filePath.toString().endsWith(".xml")) {
                         throw new IncorrectFixFileNameException("Incorrect FIX dictionary file name: " + filePath.getFileName());
                     }
                     Path pathToDictionary = Files.createFile(getPathToDictionary(temporaryDirectory, filePath));
