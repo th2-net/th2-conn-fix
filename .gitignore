@@ -1,0 +1,9 @@
+.gradle
+.idea
+build
+out
+gen
+shared
+*.log
+storage
+messages
