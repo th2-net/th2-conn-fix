@@ -54,7 +54,6 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -64,7 +63,6 @@ public class Main {
 
     private static final String INPUT_QUEUE_ATTRIBUTE = "send";
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
-    private static final Pattern DICTIONARY_FILE_NAME = Pattern.compile("^[\\w.]+\\.xml");
 
     public static class Resources {
         private final String name;
@@ -124,11 +122,11 @@ public class Main {
             ZipEntry zipEntry = null;
             try {
                 while ((zipEntry = zipInputStream.getNextEntry()) != null) {
-                    String zipName = zipEntry.getName();
-                    if (!DICTIONARY_FILE_NAME.matcher(zipName).matches()) {
-                        throw new IncorrectFixFileNameException("Incorrect file name for FIX dictionary");
+                    Path filePath = Path.of(zipEntry.getName());
+                    if (!filePath.endsWith(".xml")) {
+                        throw new IncorrectFixFileNameException("Incorrect FIX dictionary file name: " + filePath.getFileName());
                     }
-                    Path pathToDictionary = Files.createFile(getPathToDictionary(temporaryDirectory, Path.of(zipName)));
+                    Path pathToDictionary = Files.createFile(getPathToDictionary(temporaryDirectory, filePath));
                     Files.write(pathToDictionary, zipInputStream.readAllBytes());
                     new DataDictionary(pathToDictionary.toString()); //check that xml file contains the correct values
                 }
@@ -139,28 +137,24 @@ public class Main {
             throw new Exception("Failed to create DataDictionary", e);
         }
 
-        for (int i = 0; i < settings.sessionSettings.size(); i++) {
-            if (settings.sessionSettings.get(i).getBeginString().equals("FIXT.1.1")) {
+        for (FixBean sessionSetting : settings.sessionSettings) {
+            SessionID sessionID = FixBeanUtil.getSessionID(sessionSetting);
+            if (sessionSetting.getBeginString().equals("FIXT.1.1")) {
 
-                Path appDataDictionary = settings.sessionSettings.get(i).getAppDataDictionary();
-                Path transportDataDictionary = settings.sessionSettings.get(i).getTransportDataDictionary();
+                Path transportDataDictionary = Objects.requireNonNull(sessionSetting.getTransportDataDictionary(), () -> "TransportDataDictionary is null for session: " + sessionID);
+                Path appDataDictionary = Objects.requireNonNull(sessionSetting.getAppDataDictionary(), () -> "AppDataDictionary is null for session: " + sessionID);
 
-                if (transportDataDictionary == null || appDataDictionary == null) {
-                    String sessionID = FixBeanUtil.getSessionID(settings.sessionSettings.get(i)).toString();
-                    throw new IllegalStateException("Failed to set dictionary path for session " + sessionID);
-                }
-                Path pathToTransportDataDictionary = getPathToDictionary(temporaryDirectory, transportDataDictionary);
-                settings.sessionSettings.get(i).setTransportDataDictionary(pathToTransportDataDictionary.toString());
-                Path pathToAppDataDictionary = getPathToDictionary(temporaryDirectory, appDataDictionary);
-                settings.sessionSettings.get(i).setAppDataDictionary(pathToAppDataDictionary.toString());
+                Path pathToTransportDataDictionary = getPathToDictionary(temporaryDirectory, requireNotAbsolute(transportDataDictionary));
+                Path pathToAppDataDictionary = getPathToDictionary(temporaryDirectory, requireNotAbsolute(appDataDictionary));
+
+                sessionSetting.setTransportDataDictionary(requireFileExist(pathToTransportDataDictionary));
+                sessionSetting.setAppDataDictionary(requireFileExist(pathToAppDataDictionary));
             } else {
-                Path dataDictionary = settings.sessionSettings.get(i).getDataDictionary();
-                if (dataDictionary == null) {
-                    String sessionID = FixBeanUtil.getSessionID(settings.sessionSettings.get(i)).toString();
-                    throw new IllegalStateException("Failed to set dictionary path for session " + sessionID);
-                }
-                Path pathToDataDictionary = getPathToDictionary(temporaryDirectory, dataDictionary);
-                settings.sessionSettings.get(i).setDataDictionary(pathToDataDictionary.toString());
+                Path dataDictionary = Objects.requireNonNull(sessionSetting.getDataDictionary(), () -> "DataDictionary is null for session: " + sessionID);
+
+                Path pathToDataDictionary = getPathToDictionary(temporaryDirectory, requireNotAbsolute(dataDictionary));
+
+                sessionSetting.setDataDictionary(requireFileExist(pathToDataDictionary));
             }
         }
 
@@ -180,8 +174,22 @@ public class Main {
 
     }
 
-    public static Path getPathToDictionary(Path directoriesDirectory, Path dictionaryPath) {
-        return directoriesDirectory.resolve(dictionaryPath);
+    private static Path requireNotAbsolute(Path path) {
+        if (path.isAbsolute()) {
+            throw new IllegalStateException("Dictionary path must not be absolute: " + path);
+        }
+        return path;
+    }
+
+    private static Path requireFileExist(Path pathToDictionary) {
+        if (Files.notExists(pathToDictionary)) {
+            throw new IllegalStateException("No dictionary along this path: " + pathToDictionary);
+        }
+        return pathToDictionary;
+    }
+
+    private static Path getPathToDictionary(Path dictionariesDirectory, Path dictionaryPath) {
+        return dictionariesDirectory.resolve(dictionaryPath);
     }
 
     public static void run(Settings settings, MessageRouter<MessageGroupBatch> messageRouter, MessageRouter<EventBatch> eventRouter,

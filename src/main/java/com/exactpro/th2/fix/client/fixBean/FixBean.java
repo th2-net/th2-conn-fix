@@ -73,8 +73,8 @@ public class FixBean extends BaseFixBean {
         this.senderCompID = requireNotNullOrBlank("SenderCompID", senderCompID);
     }
 
-    public void setDataDictionary(String dataDictionary) {
-        this.dataDictionary = Path.of(requireNotNullOrBlank("DataDictionary", dataDictionary));
+    public void setDataDictionary(Path dataDictionary) {
+        this.dataDictionary = Path.of(requireNotNullOrBlank("DataDictionary", dataDictionary.toString()));
     }
 
     public void setSessionAlias(String sessionAlias) {
@@ -101,12 +101,12 @@ public class FixBean extends BaseFixBean {
         this.defaultApplVerID = requireNotNullOrBlank("DefaultApplVerID", defaultApplVerID);
     }
 
-    public void setAppDataDictionary(String appDataDictionary) {
-        this.appDataDictionary = Path.of(requireNotNullOrBlank("AppDataDictionary", appDataDictionary));
+    public void setAppDataDictionary(Path appDataDictionary) {
+        this.appDataDictionary = Path.of(requireNotNullOrBlank("AppDataDictionary", appDataDictionary.toString()));
     }
 
-    public void setTransportDataDictionary(String transportDataDictionary) {
-        this.transportDataDictionary = Path.of(requireNotNullOrBlank("TransportDataDictionary", transportDataDictionary));
+    public void setTransportDataDictionary(Path transportDataDictionary) {
+        this.transportDataDictionary = Path.of(requireNotNullOrBlank("TransportDataDictionary", transportDataDictionary.toString()));
     }
 
     public Path getTransportDataDictionary() {
