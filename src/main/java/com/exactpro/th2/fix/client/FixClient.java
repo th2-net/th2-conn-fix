@@ -8,7 +8,6 @@ import com.exactpro.th2.fix.client.service.ClientApplication;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import quickfix.ConfigError;
-import quickfix.DefaultMessageFactory;
 import quickfix.FileLogFactory;
 import quickfix.FileStoreFactory;
 import quickfix.LogFactory;
@@ -29,13 +28,13 @@ public class FixClient {
     private volatile boolean isRunning = false;
 
 
-    public FixClient(SessionSettings settings, MessageRouter<MessageGroupBatch> messageRouter, MessageRouter<EventBatch> eventRouter,
+    public FixClient(SessionSettings settings, Main.Settings sessionsSettings, MessageRouter<MessageGroupBatch> messageRouter, MessageRouter<EventBatch> eventRouter,
                      Map<SessionID, ConnectionID> connections, String rootEventId, int queueCapacity) throws ConfigError {
 
-        ClientApplication application = new ClientApplication();
+        ClientApplication application = new ClientApplication(sessionsSettings);
         MessageStoreFactory messageStoreFactory = new FileStoreFactory(settings);
         LogFactory logFactory = new LogFactoryImpl(new FileLogFactory(settings), messageRouter, eventRouter, connections, rootEventId);
-        MessageFactory messageFactory = new DefaultMessageFactory();
+        MessageFactory messageFactory = new FixMessageFactory();
 
         initiator = new ThreadedSocketInitiator(application, messageStoreFactory, settings, logFactory, messageFactory, queueCapacity);
 

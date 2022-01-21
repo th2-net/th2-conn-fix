@@ -209,7 +209,7 @@ public class Main {
         rootEvent.type("Microservice");
         String rootEventID = rootEvent.getId();
 
-        FixClient fixClient = new FixClient(new SessionSettings(configFile.getAbsolutePath()),
+        FixClient fixClient = new FixClient(new SessionSettings(configFile.getAbsolutePath()), settings,
                 messageRouter, eventRouter, connectionIDs, rootEventID, settings.queueCapacity);
 
         configFile.deleteOnExit();
@@ -239,10 +239,24 @@ public class Main {
 
                         SessionID sessionID = Objects.requireNonNull(sessionIDs.get(sessionAlias), () -> "Unknown session alias: " + sessionAlias);
                         Session session = Session.lookupSession(sessionID);
+                        DataDictionary dataDictionary;
 
-                        Message fixMessage = MessageUtils.parse(session, strMessage);
+                        if (sessionID.isFIXT()){
+                            dataDictionary = session
+                                    .getDataDictionaryProvider()
+                                    .getApplicationDataDictionary(session.getSenderDefaultApplicationVersionID());
+
+                        }else {
+                            dataDictionary = session.getDataDictionary();
+                        }
+
+                        FixMessageFactory messageFactory = (FixMessageFactory) session.getMessageFactory();
+
+                        Message fixMessage = messageFactory.create(sessionID.getBeginString(), MessageUtils.getMessageType(strMessage), dataDictionary.getOrderedFields());
+                        fixMessage.fromString(strMessage, dataDictionary, true);
+
                         if (!session.send(fixMessage)) {
-                            LOGGER.error("Logon rejected, message not sent");
+                            LOGGER.error("Message not sent. Message was not queued for transmission to the counterparty");
 
                             EventID eventID = message.getMessage().getParentEventId();
                             String parentEventID = eventID.getId().isEmpty() ? rootEventID : eventID.getId();

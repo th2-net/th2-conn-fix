@@ -56,4 +56,11 @@ public class FixBeanUtil {
         }
         return tagValue;
     }
+
+    public static String requireYesOrNo(String tagName, String tagValue) {
+        if (!tagValue.equals("Y") && !tagValue.equals("N")) {
+            throw new IllegalArgumentException(tagName + " must be \"Y\" or \"N\".");
+        }
+        return tagValue;
+    }
 }
