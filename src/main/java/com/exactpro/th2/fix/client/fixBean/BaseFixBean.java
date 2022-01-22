@@ -32,7 +32,7 @@ public class BaseFixBean {
     protected String resetOnLogon = "Y";
     protected String resetOnLogout = "N";
     protected String resetOnDisconnect = "N";
-    protected String logHeartBeats = "N";
+    protected String fileLogHeartBeats = "N";
     protected String checkLatency = "N";
     protected long maxLatency = 120;
     protected String allowUnknownMsgFields = "N";
@@ -49,13 +49,14 @@ public class BaseFixBean {
     protected long logoutTimeout = 10;
     protected String requiresOrigSendingTime = "Y";
     protected String timeZone = null;
-    protected String startTime = "00:00:00";
-    protected String endTime = "00:00:00";
-    protected String startDay = "monday";
-    protected String endDay = "sunday";
+    protected String startTime = null;
+    protected String endTime = null;
+    protected String startDay = null;
+    protected String endDay = null;
     protected String timeStampPrecision = null;
     protected String enableNextExpectedMsgSeqNum = null;
     protected String fakeResendRequest = null;
+    protected String orderingFields = null;
 
 
     public BaseFixBean() {
@@ -77,7 +78,7 @@ public class BaseFixBean {
         addToConfig(SETTING_RESET_ON_LOGON, resetOnLogon, stringBuilder);
         addToConfig(SETTING_RESET_ON_LOGOUT, resetOnLogon, stringBuilder);
         addToConfig(SETTING_RESET_ON_DISCONNECT, resetOnDisconnect, stringBuilder);
-        addToConfig(SETTING_LOG_HEARTBEATS, logHeartBeats, stringBuilder);
+        addToConfig(SETTING_LOG_HEARTBEATS, fileLogHeartBeats, stringBuilder);
         addToConfig(SETTING_CHECK_LATENCY, checkLatency, stringBuilder);
         addToConfig(SETTING_MAX_LATENCY, maxLatency, stringBuilder);
         addToConfig(SETTING_ALLOW_UNKNOWN_MSG_FIELDS, allowUnknownMsgFields, stringBuilder);
@@ -155,8 +156,8 @@ public class BaseFixBean {
         this.resetOnDisconnect = requireYesOrNo(SETTING_RESET_ON_DISCONNECT, resetOnDisconnect);
     }
 
-    public void setLogHeartBeats(String fileLogHeartBeats) {
-        this.logHeartBeats = requireYesOrNo(SETTING_LOG_HEARTBEATS, fileLogHeartBeats);
+    public void setFileLogHeartBeats(String fileLogHeartBeats) {
+        this.fileLogHeartBeats = requireYesOrNo(SETTING_LOG_HEARTBEATS, fileLogHeartBeats);
     }
 
     public void setCheckLatency(String checkLatency) {
@@ -202,6 +203,14 @@ public class BaseFixBean {
 
     public void setEnableNextExpectedMsgSeqNum(String enableNextExpectedMsgSeqNum) {
         this.enableNextExpectedMsgSeqNum = requireYesOrNo(SETTING_ENABLE_NEXT_EXPECTED_MSG_SEQ_NUM, enableNextExpectedMsgSeqNum);
+    }
+
+    public void setOrderingFields(String orderingFields) {
+        this.orderingFields = requireYesOrNo("OrderingFields", orderingFields);
+    }
+
+    public String getOrderingFields() {
+        return orderingFields;
     }
 
     public String getTimeStampPrecision() {
@@ -341,8 +350,8 @@ public class BaseFixBean {
         return checkLatency;
     }
 
-    public String getLogHeartBeats() {
-        return logHeartBeats;
+    public String getFileLogHeartBeats() {
+        return fileLogHeartBeats;
     }
 
     public String getResetOnLogout() {
@@ -418,7 +427,7 @@ public class BaseFixBean {
                 .append(SETTING_RESET_ON_LOGON, resetOnLogon)
                 .append(SETTING_RESET_ON_LOGOUT, resetOnLogon)
                 .append(SETTING_RESET_ON_DISCONNECT, resetOnDisconnect)
-                .append(SETTING_LOG_HEARTBEATS, logHeartBeats)
+                .append(SETTING_LOG_HEARTBEATS, fileLogHeartBeats)
                 .append(SETTING_CHECK_LATENCY, checkLatency)
                 .append(SETTING_MAX_LATENCY, maxLatency)
                 .append(SETTING_ALLOW_UNKNOWN_MSG_FIELDS, allowUnknownMsgFields)
@@ -442,6 +451,7 @@ public class BaseFixBean {
                 .append(SETTING_TIMESTAMP_PRECISION, timeStampPrecision)
                 .append(SETTING_ENABLE_NEXT_EXPECTED_MSG_SEQ_NUM, enableNextExpectedMsgSeqNum)
                 .append("FakeResendRequest", fakeResendRequest)
+                .append("OrderingFields", orderingFields)
 
                 .toString();
     }

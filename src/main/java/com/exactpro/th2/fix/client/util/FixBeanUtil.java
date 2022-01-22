@@ -10,6 +10,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 public class FixBeanUtil {
 
@@ -62,5 +63,14 @@ public class FixBeanUtil {
             throw new IllegalArgumentException(tagName + " must be \"Y\" or \"N\".");
         }
         return tagValue;
+    }
+
+    public static FixBean getSessionSettingsBySessionAlias(List<FixBean> sessionSettings, String sessionAlias) {
+        for (FixBean fixBean: sessionSettings){
+            if (sessionAlias.equals(fixBean.getSessionAlias())){
+                return fixBean;
+            }
+        }
+        return null;
     }
 }
