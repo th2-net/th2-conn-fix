@@ -280,7 +280,14 @@ public class Main {
         }
 
         if (settings.autoStart) fixClient.start();
-        if (settings.grpcStartControl) grpcRouter.startServer(new ControlService(controller));
+        if (settings.grpcStartControl){
+            try {
+                GrpcServer grpcServer = new GrpcServer(grpcRouter.startServer(new ControlService(controller)));
+                resources.add(new Resources("Grpc server", grpcServer::stop));
+            } catch (IOException e) {
+                LOGGER.error("Failed starting grpc server");
+            }
+        }
 
         LOGGER.info("Successfully started");
 
