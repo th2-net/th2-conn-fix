@@ -7,11 +7,27 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 import java.nio.file.Path;
 
 import static com.exactpro.th2.fix.client.util.FixBeanUtil.addToConfig;
-import static com.exactpro.th2.fix.client.util.FixBeanUtil.requireNotNullOrBlank;
 import static com.exactpro.th2.fix.client.util.FixBeanUtil.convertFromBoolToYOrN;
-import static quickfix.Initiator.*;
+import static com.exactpro.th2.fix.client.util.FixBeanUtil.requireNotNullOrBlank;
+import static quickfix.FileLogFactory.SETTING_FILE_LOG_PATH;
+import static quickfix.FileLogFactory.SETTING_LOG_HEARTBEATS;
+import static quickfix.FileStoreFactory.SETTING_FILE_STORE_PATH;
+import static quickfix.Initiator.SETTING_RECONNECT_INTERVAL;
+import static quickfix.Initiator.SETTING_SOCKET_CONNECT_HOST;
+import static quickfix.Initiator.SETTING_SOCKET_CONNECT_PORT;
 import static quickfix.Session.*;
-import static quickfix.SessionSettings.*;
+import static quickfix.SessionSettings.BEGINSTRING;
+import static quickfix.SessionSettings.SENDERCOMPID;
+import static quickfix.SessionSettings.SENDERLOCID;
+import static quickfix.SessionSettings.SENDERSUBID;
+import static quickfix.SessionSettings.TARGETCOMPID;
+import static quickfix.SessionSettings.TARGETLOCID;
+import static quickfix.SessionSettings.TARGETSUBID;
+import static quickfix.mina.ssl.SSLSupport.SETTING_CIPHER_SUITES;
+import static quickfix.mina.ssl.SSLSupport.SETTING_ENABLED_PROTOCOLS;
+import static quickfix.mina.ssl.SSLSupport.SETTING_KEY_STORE_NAME;
+import static quickfix.mina.ssl.SSLSupport.SETTING_KEY_STORE_PWD;
+import static quickfix.mina.ssl.SSLSupport.SETTING_USE_SSL;
 
 public class FixBean extends BaseFixBean {
 
@@ -67,6 +83,38 @@ public class FixBean extends BaseFixBean {
         addToConfig(SETTING_ENABLE_NEXT_EXPECTED_MSG_SEQ_NUM, enableNextExpectedMsgSeqNum, stringBuilder);
         addToConfig(SETTING_REQUIRES_ORIG_SENDING_TIME, requiresOrigSendingTime, stringBuilder);
         addToConfig(SETTING_TIMEZONE, timeZone, stringBuilder);
+        addToConfig(SETTING_NON_STOP_SESSION, nonStopSession, stringBuilder);
+        addToConfig(SETTING_FILE_STORE_PATH, fileStorePath, stringBuilder);
+        addToConfig(SETTING_FILE_LOG_PATH, fileLogPath, stringBuilder);
+        addToConfig(SETTING_RECONNECT_INTERVAL, reconnectInterval, stringBuilder);
+        addToConfig(SETTING_HEARTBTINT, heartBtInt, stringBuilder);
+        addToConfig(SETTING_VALIDATE_USER_DEFINED_FIELDS, validateUserDefinedFields, stringBuilder);
+        addToConfig(SETTING_VALIDATE_INCOMING_MESSAGE, validateIncomingMessage, stringBuilder);
+        addToConfig(SETTING_REFRESH_ON_LOGON, refreshOnLogon, stringBuilder);
+        addToConfig(SETTING_RESET_ON_LOGON, resetOnLogon, stringBuilder);
+        addToConfig(SETTING_RESET_ON_LOGOUT, resetOnLogout, stringBuilder);
+        addToConfig(SETTING_RESET_ON_DISCONNECT, resetOnDisconnect, stringBuilder);
+        addToConfig(SETTING_LOG_HEARTBEATS, logHeartBeats, stringBuilder);
+        addToConfig(SETTING_CHECK_LATENCY, checkLatency, stringBuilder);
+        addToConfig(SETTING_MAX_LATENCY, maxLatency, stringBuilder);
+        addToConfig(SETTING_ALLOW_UNKNOWN_MSG_FIELDS, allowUnknownMsgFields, stringBuilder);
+        addToConfig(SETTING_REJECT_INVALID_MESSAGE, rejectInvalidMessage, stringBuilder);
+        addToConfig(SETTING_VALIDATE_FIELDS_OUT_OF_ORDER, validateFieldsOutOfOrder, stringBuilder);
+        addToConfig(SETTING_VALIDATE_FIELDS_HAVE_VALUES, validateFieldsHaveValues, stringBuilder);
+        addToConfig(SETTING_USE_SSL, socketUseSSL, stringBuilder);
+        addToConfig(SETTING_KEY_STORE_NAME, socketKeyStore, stringBuilder);
+        addToConfig(SETTING_KEY_STORE_PWD, socketKeyStorePassword, stringBuilder);
+        addToConfig(SETTING_ENABLED_PROTOCOLS, enabledProtocols, stringBuilder);
+        addToConfig(SETTING_CIPHER_SUITES, cipherSuites, stringBuilder);
+        addToConfig(SETTING_VALIDATE_SEQUENCE_NUMBERS, validateSequenceNumbers, stringBuilder);
+        addToConfig(SETTING_LOGON_TIMEOUT, logonTimeout, stringBuilder);
+        addToConfig(SETTING_LOGOUT_TIMEOUT, logoutTimeout, stringBuilder);
+        addToConfig(SETTING_START_TIME, startTime, stringBuilder);
+        addToConfig(SETTING_END_TIME, endTime, stringBuilder);
+        addToConfig(SETTING_START_DAY, startDay,stringBuilder);
+        addToConfig(SETTING_END_DAY, endDay, stringBuilder);
+        addToConfig(SETTING_TIMESTAMP_PRECISION, timeStampPrecision, stringBuilder);
+        addToConfig(SETTING_ENABLE_NEXT_EXPECTED_MSG_SEQ_NUM, enableNextExpectedMsgSeqNum, stringBuilder);
         return stringBuilder;
     }
 

@@ -74,6 +74,10 @@ public class MainTest extends Main {
         fixBean.setTransportDataDictionary(Path.of("/Users/dmitry_yugai/IdeaProjects/th2-conn-qfj/src/test/java/resources/FIXT11.xml"));
         fixBean.setAppDataDictionary(Path.of("/Users/dmitry_yugai/IdeaProjects/th2-conn-qfj/src/test/java/resources/FIX50SP2.xml"));
         fixBean.setOrderingFields("true");
+        fixBean.setStartTime("15:31:00 [Europe/Moscow]");
+        fixBean.setEndTime("21:15:00 [Europe/Moscow]");
+        fixBean.setStartDay("monday");
+        fixBean.setEndDay("sunday");
 
 
         FixBean fixBean1 = new FixBean();
@@ -85,12 +89,17 @@ public class MainTest extends Main {
         fixBean1.setSessionAlias("client2");
         fixBean1.setTransportDataDictionary(Path.of("/Users/dmitry_yugai/IdeaProjects/th2-conn-qfj/src/test/java/resources/FIXT11.xml"));
         fixBean1.setAppDataDictionary(Path.of("/Users/dmitry_yugai/IdeaProjects/th2-conn-qfj/src/test/java/resources/FIX50SP2.xml"));
+        fixBean1.setStartTime("15:15:00 [Europe/Moscow]");
+        fixBean1.setEndTime("21:15:00 [Europe/Moscow]");
+        fixBean1.setStartDay("monday");
+        fixBean1.setEndDay("sunday");
 
         List<FixBean> fixBeans = new ArrayList<>();
         fixBeans.add(fixBean);
         fixBeans.add(fixBean1);
         settings.setSessionSettings(fixBeans);
 
+        System.out.println(settings);
         MyMessageRouter messageRouter = new MyMessageRouter();
 
         MessageRouter<EventBatch> eventRouter = new MyEventRouter();
@@ -231,7 +240,7 @@ public class MainTest extends Main {
                         .build())
                 .build();
 
-        Thread.sleep(5000);
+        Thread.sleep(65000);
 
         messageRouter.sendToSubscriber("client1", messageGroupBatch);
         messageRouter.sendToSubscriber("client2", messageGroupBatch2);

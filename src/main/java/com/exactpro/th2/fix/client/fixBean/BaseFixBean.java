@@ -27,8 +27,8 @@ public class BaseFixBean {
     protected String useDataDictionary = "Y";
     protected String validateUserDefinedFields = "N";
     protected String validateIncomingMessage = "Y";
-    protected String refreshOnLogon = "Y";
-    protected String nonStopSession = "Y";
+    protected String refreshOnLogon = "N";
+    protected String nonStopSession = "N";
     protected String resetOnLogon = "Y";
     protected String resetOnLogout = "N";
     protected String resetOnDisconnect = "N";
@@ -57,6 +57,7 @@ public class BaseFixBean {
     protected String enableNextExpectedMsgSeqNum = null;
     protected String fakeResendRequest = null;
     protected String orderingFields = null;
+    protected boolean autorelogine = true;
 
 
     public BaseFixBean() {
@@ -76,7 +77,7 @@ public class BaseFixBean {
         addToConfig(SETTING_VALIDATE_INCOMING_MESSAGE, validateIncomingMessage, stringBuilder);
         addToConfig(SETTING_REFRESH_ON_LOGON, refreshOnLogon, stringBuilder);
         addToConfig(SETTING_RESET_ON_LOGON, resetOnLogon, stringBuilder);
-        addToConfig(SETTING_RESET_ON_LOGOUT, resetOnLogon, stringBuilder);
+        addToConfig(SETTING_RESET_ON_LOGOUT, resetOnLogout, stringBuilder);
         addToConfig(SETTING_RESET_ON_DISCONNECT, resetOnDisconnect, stringBuilder);
         addToConfig(SETTING_LOG_HEARTBEATS, logHeartBeats, stringBuilder);
         addToConfig(SETTING_CHECK_LATENCY, checkLatency, stringBuilder);
@@ -121,7 +122,11 @@ public class BaseFixBean {
     }
 
     public void setReconnectInterval(long reconnectInterval) {
-        this.reconnectInterval = requirePositive(SETTING_RECONNECT_INTERVAL, reconnectInterval);
+        if (!autorelogine){
+            this.reconnectInterval = Long.MAX_VALUE;
+        }else {
+            this.reconnectInterval = requirePositive(SETTING_RECONNECT_INTERVAL, reconnectInterval);
+        }
     }
 
     public void setHeartBtInt(long heartBtInt) {
@@ -140,9 +145,9 @@ public class BaseFixBean {
         this.refreshOnLogon = convertFromBoolToYOrN(SETTING_REFRESH_ON_LOGON, refreshOnLogon);
     }
 
-    public void setNonStopSession(String nonStopSession) {
-        this.nonStopSession = convertFromBoolToYOrN(SETTING_NON_STOP_SESSION, nonStopSession);
-    }
+//    public void setNonStopSession(String nonStopSession) {
+//        this.nonStopSession = convertFromBoolToYOrN(SETTING_NON_STOP_SESSION, nonStopSession);
+//    }
 
     public void setResetOnLogon(String resetOnLogon) {
         this.resetOnLogon = convertFromBoolToYOrN(SETTING_RESET_ON_LOGON, resetOnLogon);
@@ -207,6 +212,13 @@ public class BaseFixBean {
 
     public void setOrderingFields(String orderingFields) {
         this.orderingFields = convertFromBoolToYOrN("OrderingFields", orderingFields);
+    }
+
+    public void setAutorelogine(boolean autorelogine) {
+        this.autorelogine = autorelogine;
+        if (!autorelogine){
+            this.reconnectInterval = Long.MAX_VALUE;
+        }
     }
 
     public String getOrderingFields() {
@@ -410,6 +422,9 @@ public class BaseFixBean {
         return timeZone;
     }
 
+    public boolean isAutorelogine() {
+        return autorelogine;
+    }
 
     @Override
     public String toString() {
@@ -452,6 +467,7 @@ public class BaseFixBean {
                 .append(SETTING_ENABLE_NEXT_EXPECTED_MSG_SEQ_NUM, enableNextExpectedMsgSeqNum)
                 .append("FakeResendRequest", fakeResendRequest)
                 .append("OrderingFields", orderingFields)
+                .append("Autorelogine", autorelogine)
 
                 .toString();
     }
