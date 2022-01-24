@@ -123,7 +123,7 @@ public class BaseFixBean {
 
     public void setReconnectInterval(long reconnectInterval) {
         if (!autorelogin){
-            this.reconnectInterval =  2_000_000_000;
+            this.reconnectInterval =  1_000_000_000;
         }else {
             this.reconnectInterval = requirePositive(SETTING_RECONNECT_INTERVAL, reconnectInterval);
         }
@@ -217,7 +217,7 @@ public class BaseFixBean {
     public void setAutorelogin(boolean autorelogin) {
         this.autorelogin = autorelogin;
         if (!autorelogin){
-            this.reconnectInterval = 2_000_000_000;
+            this.reconnectInterval = 1_000_000_000;
         }
     }
 

@@ -78,7 +78,7 @@ public class MainTest extends Main {
         fixBean.setEndTime("21:15:00 [Europe/Moscow]");
         fixBean.setStartDay("monday");
         fixBean.setEndDay("sunday");
-        fixBean.setAutorelogin(false);
+        fixBean.setAutorelogin(true);
 
 
         FixBean fixBean1 = new FixBean();
@@ -94,6 +94,7 @@ public class MainTest extends Main {
         fixBean1.setEndTime("21:15:00 [Europe/Moscow]");
         fixBean1.setStartDay("monday");
         fixBean1.setEndDay("sunday");
+        fixBean1.setAutorelogin(false);
 
         List<FixBean> fixBeans = new ArrayList<>();
         fixBeans.add(fixBean);
@@ -241,7 +242,7 @@ public class MainTest extends Main {
                         .build())
                 .build();
 
-        Thread.sleep(65000);
+        Thread.sleep(5000);
 
         messageRouter.sendToSubscriber("client1", messageGroupBatch);
         messageRouter.sendToSubscriber("client2", messageGroupBatch2);
