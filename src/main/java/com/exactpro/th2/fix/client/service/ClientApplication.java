@@ -100,7 +100,8 @@ public class ClientApplication implements Application {
                             byte[] encryptedNewPasswordBytes = cipher.doFinal(newPassword.getBytes());
                             encryptedNewPassword = new String(Base64.encodeBase64(encryptedNewPasswordBytes));
                         }
-                    } catch (NoSuchAlgorithmException | InvalidKeyException | NoSuchPaddingException | IllegalBlockSizeException | BadPaddingException e) {
+                    } catch (NoSuchAlgorithmException | InvalidKeyException | NoSuchPaddingException |
+                            IllegalBlockSizeException | BadPaddingException e) {
                         LOGGER.error("Failed to encrypt password", e);
                     }
 

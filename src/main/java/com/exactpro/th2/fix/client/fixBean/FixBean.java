@@ -34,8 +34,8 @@ public class FixBean extends BaseFixBean {
     protected Path transportDataDictionary = null;
     protected String defaultApplVerID = "9";
     protected String sessionAlias = null;
-    protected String username = "553=user1";
-    protected String password = "554=password";
+    protected String username = null;
+    protected String password = null;
     protected String newPassword = null;
     protected String encryptPassword = "N";
     protected String encryptionKeyFilePath = null;
