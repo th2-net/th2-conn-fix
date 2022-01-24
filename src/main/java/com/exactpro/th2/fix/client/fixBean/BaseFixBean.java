@@ -57,7 +57,7 @@ public class BaseFixBean {
     protected String enableNextExpectedMsgSeqNum = null;
     protected String fakeResendRequest = null;
     protected String orderingFields = null;
-    protected boolean autorelogine = true;
+    protected boolean autorelogin = true;
 
 
     public BaseFixBean() {
@@ -122,8 +122,8 @@ public class BaseFixBean {
     }
 
     public void setReconnectInterval(long reconnectInterval) {
-        if (!autorelogine){
-            this.reconnectInterval = Long.MAX_VALUE;
+        if (!autorelogin){
+            this.reconnectInterval =  2_000_000_000;
         }else {
             this.reconnectInterval = requirePositive(SETTING_RECONNECT_INTERVAL, reconnectInterval);
         }
@@ -214,10 +214,10 @@ public class BaseFixBean {
         this.orderingFields = convertFromBoolToYOrN("OrderingFields", orderingFields);
     }
 
-    public void setAutorelogine(boolean autorelogine) {
-        this.autorelogine = autorelogine;
-        if (!autorelogine){
-            this.reconnectInterval = Long.MAX_VALUE;
+    public void setAutorelogin(boolean autorelogin) {
+        this.autorelogin = autorelogin;
+        if (!autorelogin){
+            this.reconnectInterval = 2_000_000_000;
         }
     }
 
@@ -422,8 +422,8 @@ public class BaseFixBean {
         return timeZone;
     }
 
-    public boolean isAutorelogine() {
-        return autorelogine;
+    public boolean isAutorelogin() {
+        return autorelogin;
     }
 
     @Override
@@ -467,7 +467,7 @@ public class BaseFixBean {
                 .append(SETTING_ENABLE_NEXT_EXPECTED_MSG_SEQ_NUM, enableNextExpectedMsgSeqNum)
                 .append("FakeResendRequest", fakeResendRequest)
                 .append("OrderingFields", orderingFields)
-                .append("Autorelogine", autorelogine)
+                .append("Autorelogine", autorelogin)
 
                 .toString();
     }

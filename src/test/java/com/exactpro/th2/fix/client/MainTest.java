@@ -78,6 +78,7 @@ public class MainTest extends Main {
         fixBean.setEndTime("21:15:00 [Europe/Moscow]");
         fixBean.setStartDay("monday");
         fixBean.setEndDay("sunday");
+        fixBean.setAutorelogin(false);
 
 
         FixBean fixBean1 = new FixBean();
