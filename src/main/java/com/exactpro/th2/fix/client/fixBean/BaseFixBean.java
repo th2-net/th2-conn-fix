@@ -7,7 +7,7 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 
 import static com.exactpro.th2.fix.client.util.FixBeanUtil.addToConfig;
 import static com.exactpro.th2.fix.client.util.FixBeanUtil.requireNotNullOrBlank;
-import static com.exactpro.th2.fix.client.util.FixBeanUtil.requireYesOrNo;
+import static com.exactpro.th2.fix.client.util.FixBeanUtil.convertFromBoolToYOrN;
 import static quickfix.Session.*;
 import static quickfix.mina.ssl.SSLSupport.*;
 import static quickfix.FileLogFactory.*;
@@ -32,7 +32,7 @@ public class BaseFixBean {
     protected String resetOnLogon = "Y";
     protected String resetOnLogout = "N";
     protected String resetOnDisconnect = "N";
-    protected String fileLogHeartBeats = "N";
+    protected String logHeartBeats = "N";
     protected String checkLatency = "N";
     protected long maxLatency = 120;
     protected String allowUnknownMsgFields = "N";
@@ -78,7 +78,7 @@ public class BaseFixBean {
         addToConfig(SETTING_RESET_ON_LOGON, resetOnLogon, stringBuilder);
         addToConfig(SETTING_RESET_ON_LOGOUT, resetOnLogon, stringBuilder);
         addToConfig(SETTING_RESET_ON_DISCONNECT, resetOnDisconnect, stringBuilder);
-        addToConfig(SETTING_LOG_HEARTBEATS, fileLogHeartBeats, stringBuilder);
+        addToConfig(SETTING_LOG_HEARTBEATS, logHeartBeats, stringBuilder);
         addToConfig(SETTING_CHECK_LATENCY, checkLatency, stringBuilder);
         addToConfig(SETTING_MAX_LATENCY, maxLatency, stringBuilder);
         addToConfig(SETTING_ALLOW_UNKNOWN_MSG_FIELDS, allowUnknownMsgFields, stringBuilder);
@@ -129,39 +129,39 @@ public class BaseFixBean {
     }
 
     public void setValidateUserDefinedFields(String validateUserDefinedFields) {
-        this.validateUserDefinedFields = requireYesOrNo(SETTING_VALIDATE_USER_DEFINED_FIELDS, validateUserDefinedFields);
+        this.validateUserDefinedFields = convertFromBoolToYOrN(SETTING_VALIDATE_USER_DEFINED_FIELDS, validateUserDefinedFields);
     }
 
     public void setValidateIncomingMessage(String validateIncomingMessage) {
-        this.validateIncomingMessage = requireYesOrNo(SETTING_VALIDATE_INCOMING_MESSAGE, validateIncomingMessage);
+        this.validateIncomingMessage = convertFromBoolToYOrN(SETTING_VALIDATE_INCOMING_MESSAGE, validateIncomingMessage);
     }
 
     public void setRefreshOnLogon(String refreshOnLogon) {
-        this.refreshOnLogon = requireYesOrNo(SETTING_REFRESH_ON_LOGON, refreshOnLogon);
+        this.refreshOnLogon = convertFromBoolToYOrN(SETTING_REFRESH_ON_LOGON, refreshOnLogon);
     }
 
     public void setNonStopSession(String nonStopSession) {
-        this.nonStopSession = requireYesOrNo(SETTING_NON_STOP_SESSION, nonStopSession);
+        this.nonStopSession = convertFromBoolToYOrN(SETTING_NON_STOP_SESSION, nonStopSession);
     }
 
     public void setResetOnLogon(String resetOnLogon) {
-        this.resetOnLogon = requireYesOrNo(SETTING_RESET_ON_LOGON, resetOnLogon);
+        this.resetOnLogon = convertFromBoolToYOrN(SETTING_RESET_ON_LOGON, resetOnLogon);
     }
 
     public void setResetOnLogout(String resetOnLogout) {
-        this.resetOnLogout = requireYesOrNo(SETTING_RESET_ON_LOGOUT, resetOnLogout);
+        this.resetOnLogout = convertFromBoolToYOrN(SETTING_RESET_ON_LOGOUT, resetOnLogout);
     }
 
     public void setResetOnDisconnect(String resetOnDisconnect) {
-        this.resetOnDisconnect = requireYesOrNo(SETTING_RESET_ON_DISCONNECT, resetOnDisconnect);
+        this.resetOnDisconnect = convertFromBoolToYOrN(SETTING_RESET_ON_DISCONNECT, resetOnDisconnect);
     }
 
-    public void setFileLogHeartBeats(String fileLogHeartBeats) {
-        this.fileLogHeartBeats = requireYesOrNo(SETTING_LOG_HEARTBEATS, fileLogHeartBeats);
+    public void setLogHeartBeats(String logHeartBeats) {
+        this.logHeartBeats = convertFromBoolToYOrN(SETTING_LOG_HEARTBEATS, logHeartBeats);
     }
 
     public void setCheckLatency(String checkLatency) {
-        this.checkLatency = requireYesOrNo(SETTING_CHECK_LATENCY, checkLatency);
+        this.checkLatency = convertFromBoolToYOrN(SETTING_CHECK_LATENCY, checkLatency);
     }
 
     public void setMaxLatency(long maxLatency) {
@@ -169,31 +169,31 @@ public class BaseFixBean {
     }
 
     public void setAllowUnknownMsgFields(String allowUnknownMsgFields) {
-        this.allowUnknownMsgFields = requireYesOrNo(SETTING_ALLOW_UNKNOWN_MSG_FIELDS, allowUnknownMsgFields);
+        this.allowUnknownMsgFields = convertFromBoolToYOrN(SETTING_ALLOW_UNKNOWN_MSG_FIELDS, allowUnknownMsgFields);
     }
 
     public void setRejectInvalidMessage(String rejectInvalidMessage) {
-        this.rejectInvalidMessage = requireYesOrNo(SETTING_REJECT_INVALID_MESSAGE, rejectInvalidMessage);
+        this.rejectInvalidMessage = convertFromBoolToYOrN(SETTING_REJECT_INVALID_MESSAGE, rejectInvalidMessage);
     }
 
     public void setValidateFieldsOutOfOrder(String validateFieldsOutOfOrder) {
-        this.validateFieldsOutOfOrder = requireYesOrNo(SETTING_VALIDATE_FIELDS_OUT_OF_ORDER, validateFieldsOutOfOrder);
+        this.validateFieldsOutOfOrder = convertFromBoolToYOrN(SETTING_VALIDATE_FIELDS_OUT_OF_ORDER, validateFieldsOutOfOrder);
     }
 
     public void setValidateFieldsHaveValues(String validateFieldsHaveValues) {
-        this.validateFieldsHaveValues = requireYesOrNo(SETTING_VALIDATE_FIELDS_HAVE_VALUES, validateFieldsHaveValues);
+        this.validateFieldsHaveValues = convertFromBoolToYOrN(SETTING_VALIDATE_FIELDS_HAVE_VALUES, validateFieldsHaveValues);
     }
 
     public void setSocketUseSSL(String socketUseSSL) {
-        this.socketUseSSL = requireYesOrNo(SETTING_USE_SSL, socketUseSSL);
+        this.socketUseSSL = convertFromBoolToYOrN(SETTING_USE_SSL, socketUseSSL);
     }
 
     public void setFakeResendRequest(String fakeResendRequest) {
-        this.fakeResendRequest = requireYesOrNo("FakeResendRequest", fakeResendRequest);
+        this.fakeResendRequest = convertFromBoolToYOrN("FakeResendRequest", fakeResendRequest);
     }
 
     public void setValidateSequenceNumbers(String validateSequenceNumbers) {
-        this.validateSequenceNumbers = requireYesOrNo(SETTING_VALIDATE_SEQUENCE_NUMBERS, validateSequenceNumbers);
+        this.validateSequenceNumbers = convertFromBoolToYOrN(SETTING_VALIDATE_SEQUENCE_NUMBERS, validateSequenceNumbers);
     }
 
     public void setTimeStampPrecision(String timeStampPrecision) {
@@ -202,11 +202,11 @@ public class BaseFixBean {
     }
 
     public void setEnableNextExpectedMsgSeqNum(String enableNextExpectedMsgSeqNum) {
-        this.enableNextExpectedMsgSeqNum = requireYesOrNo(SETTING_ENABLE_NEXT_EXPECTED_MSG_SEQ_NUM, enableNextExpectedMsgSeqNum);
+        this.enableNextExpectedMsgSeqNum = convertFromBoolToYOrN(SETTING_ENABLE_NEXT_EXPECTED_MSG_SEQ_NUM, enableNextExpectedMsgSeqNum);
     }
 
     public void setOrderingFields(String orderingFields) {
-        this.orderingFields = requireYesOrNo("OrderingFields", orderingFields);
+        this.orderingFields = convertFromBoolToYOrN("OrderingFields", orderingFields);
     }
 
     public String getOrderingFields() {
@@ -234,7 +234,7 @@ public class BaseFixBean {
     }
 
     public void setRequiresOrigSendingTime(String requiresOrigSendingTime) {
-        this.requiresOrigSendingTime = requireYesOrNo(SETTING_REQUIRES_ORIG_SENDING_TIME, requiresOrigSendingTime);
+        this.requiresOrigSendingTime = convertFromBoolToYOrN(SETTING_REQUIRES_ORIG_SENDING_TIME, requiresOrigSendingTime);
     }
 
     public void setStartTime(String startTime) {
@@ -350,8 +350,8 @@ public class BaseFixBean {
         return checkLatency;
     }
 
-    public String getFileLogHeartBeats() {
-        return fileLogHeartBeats;
+    public String getLogHeartBeats() {
+        return logHeartBeats;
     }
 
     public String getResetOnLogout() {
@@ -427,7 +427,7 @@ public class BaseFixBean {
                 .append(SETTING_RESET_ON_LOGON, resetOnLogon)
                 .append(SETTING_RESET_ON_LOGOUT, resetOnLogon)
                 .append(SETTING_RESET_ON_DISCONNECT, resetOnDisconnect)
-                .append(SETTING_LOG_HEARTBEATS, fileLogHeartBeats)
+                .append(SETTING_LOG_HEARTBEATS, logHeartBeats)
                 .append(SETTING_CHECK_LATENCY, checkLatency)
                 .append(SETTING_MAX_LATENCY, maxLatency)
                 .append(SETTING_ALLOW_UNKNOWN_MSG_FIELDS, allowUnknownMsgFields)

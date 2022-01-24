@@ -73,7 +73,7 @@ public class MainTest extends Main {
         fixBean.setSessionAlias("client1");
         fixBean.setTransportDataDictionary(Path.of("/Users/dmitry_yugai/IdeaProjects/th2-conn-qfj/src/test/java/resources/FIXT11.xml"));
         fixBean.setAppDataDictionary(Path.of("/Users/dmitry_yugai/IdeaProjects/th2-conn-qfj/src/test/java/resources/FIX50SP2.xml"));
-        fixBean.setOrderingFields("Y");
+        fixBean.setOrderingFields("true");
 
 
         FixBean fixBean1 = new FixBean();

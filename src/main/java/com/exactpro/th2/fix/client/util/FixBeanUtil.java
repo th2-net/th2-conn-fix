@@ -58,11 +58,17 @@ public class FixBeanUtil {
         return tagValue;
     }
 
-    public static String requireYesOrNo(String tagName, String tagValue) {
-        if (!tagValue.equals("Y") && !tagValue.equals("N")) {
-            throw new IllegalArgumentException(tagName + " must be \"Y\" or \"N\".");
+    public static String convertFromBoolToYOrN(String tagName, String tagValue){
+
+        if (tagValue.equals("true")){
+            tagValue = "Y";
+            return tagValue;
+        }else if (tagValue.equals("false")){
+            tagValue = "N";
+            return tagValue;
+        }else {
+            throw new IllegalArgumentException(tagName + " must be \"true\" or \"false\".");
         }
-        return tagValue;
     }
 
     public static FixBean getSessionSettingsBySessionAlias(List<FixBean> sessionSettings, String sessionAlias) {

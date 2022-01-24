@@ -8,7 +8,7 @@ import java.nio.file.Path;
 
 import static com.exactpro.th2.fix.client.util.FixBeanUtil.addToConfig;
 import static com.exactpro.th2.fix.client.util.FixBeanUtil.requireNotNullOrBlank;
-import static com.exactpro.th2.fix.client.util.FixBeanUtil.requireYesOrNo;
+import static com.exactpro.th2.fix.client.util.FixBeanUtil.convertFromBoolToYOrN;
 import static quickfix.Initiator.*;
 import static quickfix.Session.*;
 import static quickfix.SessionSettings.*;
@@ -130,15 +130,15 @@ public class FixBean extends BaseFixBean {
     }
 
     public void setUsername(String username) {
-        this.username = requireNotNullOrBlank(SETTING_LOGON_TAG, username);
+        this.username = "553=" + requireNotNullOrBlank(SETTING_LOGON_TAG, username);
     }
 
     public void setPassword(String password) {
-        this.password = requireNotNullOrBlank(SETTING_LOGON_TAG + 1, password);
+        this.password = "554=" + requireNotNullOrBlank(SETTING_LOGON_TAG + 1, password);
     }
 
     public void setNewPassword(String newPassword) {
-        this.newPassword = requireNotNullOrBlank(SETTING_LOGON_TAG + 2, newPassword);
+        this.newPassword = "925=" + requireNotNullOrBlank(SETTING_LOGON_TAG + 2, newPassword);
     }
 
     public String getEncryptPassword() {
@@ -150,7 +150,7 @@ public class FixBean extends BaseFixBean {
     }
 
     public void setEncryptPassword(String encryptPassword) {
-        this.encryptPassword = requireYesOrNo("EncryptPassword", encryptPassword);
+        this.encryptPassword = convertFromBoolToYOrN("EncryptPassword", encryptPassword);
     }
 
     public void setEncryptionKeyFilePath(String encryptionKeyFilePath) {
