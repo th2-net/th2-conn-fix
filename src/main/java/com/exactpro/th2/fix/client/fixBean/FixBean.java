@@ -56,6 +56,8 @@ public class FixBean extends BaseFixBean {
     protected String encryptPassword = "N";
     protected String encryptionKeyFilePath = null;
 
+    private int logonTagIndex = 0;
+
 
     public StringBuilder toConfig(String sectionName) {
         StringBuilder stringBuilder = super.toConfig(sectionName);
@@ -76,9 +78,9 @@ public class FixBean extends BaseFixBean {
         addToConfig(SETTING_END_TIME, endTime, stringBuilder);
         addToConfig(SETTING_START_DAY, startDay,stringBuilder);
         addToConfig(SETTING_END_DAY, endDay, stringBuilder);
-        addToConfig(SETTING_LOGON_TAG, username, stringBuilder);
-        addToConfig(SETTING_LOGON_TAG + 1, password, stringBuilder);
-        addToConfig(SETTING_LOGON_TAG + 2, newPassword, stringBuilder);
+        addToConfig(getSettingLogonTag(username), username, stringBuilder);
+        addToConfig(getSettingLogonTag(password), password, stringBuilder);
+        addToConfig(getSettingLogonTag(newPassword), newPassword, stringBuilder);
         addToConfig(SETTING_TIMESTAMP_PRECISION, timeStampPrecision, stringBuilder);
         addToConfig(SETTING_ENABLE_NEXT_EXPECTED_MSG_SEQ_NUM, enableNextExpectedMsgSeqNum, stringBuilder);
         addToConfig(SETTING_REQUIRES_ORIG_SENDING_TIME, requiresOrigSendingTime, stringBuilder);
@@ -116,6 +118,18 @@ public class FixBean extends BaseFixBean {
         addToConfig(SETTING_TIMESTAMP_PRECISION, timeStampPrecision, stringBuilder);
         addToConfig(SETTING_ENABLE_NEXT_EXPECTED_MSG_SEQ_NUM, enableNextExpectedMsgSeqNum, stringBuilder);
         return stringBuilder;
+    }
+
+    private String getSettingLogonTag(String value){
+        if (value == null || value.isEmpty()){
+            return null;
+        }
+        String logonTag = SETTING_LOGON_TAG;
+        if (logonTagIndex != 0) {
+            logonTag = SETTING_LOGON_TAG + logonTagIndex;
+        }
+        logonTagIndex++;
+        return logonTag;
     }
 
     public void setBeginString(String beginString) {

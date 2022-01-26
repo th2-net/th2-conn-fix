@@ -81,7 +81,9 @@ public class MainTest extends Main {
         fixBean.setAutorelogin(false);
         fixBean.setResetOnLogon("false");
         fixBean.setUseDefaultApplVerID(true);
-
+        fixBean.setUsername("Tanos");
+        fixBean.setPassword("1234");
+        fixBean.setNewPassword("123");
 
         FixBean fixBean1 = new FixBean();
         fixBean1.setBeginString("FIXT.1.1");
@@ -98,6 +100,8 @@ public class MainTest extends Main {
         fixBean1.setEndDay("sunday");
         fixBean1.setAutorelogin(false);
         fixBean1.setResetOnLogon("false");
+        fixBean1.setPassword("1234");
+        fixBean1.setNewPassword("123");
 
         List<FixBean> fixBeans = new ArrayList<>();
         fixBeans.add(fixBean);
