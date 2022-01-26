@@ -63,22 +63,24 @@ public class MainTest extends Main {
         Main.Settings settings = new Settings();
 
         FixBean fixBean = new FixBean();
-        fixBean.setBeginString("FIXT.1.1");
-        fixBean.setDefaultApplVerID("9");
+        fixBean.setBeginString("FIX.4.4");
         fixBean.setSenderCompID("client");
         fixBean.setTargetCompID("server");
 //        fixBean.setSenderSubID("sendSubId");
 //        fixBean.setTargetSubID("tarSubId");
         fixBean.setSocketConnectPort(9877);
         fixBean.setSessionAlias("client1");
-        fixBean.setTransportDataDictionary(Path.of("/Users/dmitry_yugai/IdeaProjects/th2-conn-qfj/src/test/java/resources/FIXT11.xml"));
-        fixBean.setAppDataDictionary(Path.of("/Users/dmitry_yugai/IdeaProjects/th2-conn-qfj/src/test/java/resources/FIX50SP2.xml"));
+//        fixBean.setTransportDataDictionary(Path.of("/Users/dmitry_yugai/IdeaProjects/th2-conn-qfj/src/test/java/resources/FIXT11.xml"));
+//        fixBean.setAppDataDictionary(Path.of("/Users/dmitry_yugai/IdeaProjects/th2-conn-qfj/src/test/java/resources/FIX50SP2.xml"));
+        fixBean.setDataDictionary(Path.of("/Users/dmitry_yugai/IdeaProjects/th2-conn-qfj/src/test/java/resources/FIX44.xml"));
         fixBean.setOrderingFields("true");
-        fixBean.setStartTime("15:31:00 [Europe/Moscow]");
-        fixBean.setEndTime("21:15:00 [Europe/Moscow]");
+        fixBean.setStartTime("15:31:00 Europe/Moscow");
+        fixBean.setEndTime("21:15:00 Europe/Moscow");
         fixBean.setStartDay("monday");
         fixBean.setEndDay("sunday");
-        fixBean.setAutorelogin(true);
+        fixBean.setAutorelogin(false);
+        fixBean.setResetOnLogon("false");
+        fixBean.setUseDefaultApplVerID(true);
 
 
         FixBean fixBean1 = new FixBean();
@@ -90,11 +92,12 @@ public class MainTest extends Main {
         fixBean1.setSessionAlias("client2");
         fixBean1.setTransportDataDictionary(Path.of("/Users/dmitry_yugai/IdeaProjects/th2-conn-qfj/src/test/java/resources/FIXT11.xml"));
         fixBean1.setAppDataDictionary(Path.of("/Users/dmitry_yugai/IdeaProjects/th2-conn-qfj/src/test/java/resources/FIX50SP2.xml"));
-        fixBean1.setStartTime("15:15:00 [Europe/Moscow]");
-        fixBean1.setEndTime("21:15:00 [Europe/Moscow]");
+        fixBean1.setStartTime("15:15:00 Europe/Moscow");
+        fixBean1.setEndTime("21:15:00 Europe/Moscow");
         fixBean1.setStartDay("monday");
         fixBean1.setEndDay("sunday");
         fixBean1.setAutorelogin(false);
+        fixBean1.setResetOnLogon("false");
 
         List<FixBean> fixBeans = new ArrayList<>();
         fixBeans.add(fixBean);
@@ -161,7 +164,6 @@ public class MainTest extends Main {
         group.setString(TradingSessionID.FIELD, "3");
         fixMessage2.addGroup(group);
 
-
         Message fixMessage1 = new Message();
         Message.Header headerClient1 = fixMessage1.getHeader();
         headerClient1.setField(new BeginString("FIXT.1.1"));
@@ -195,6 +197,7 @@ public class MainTest extends Main {
 
         fixMessage1.addGroup(noSidesGr1);
         fixMessage1.addGroup(noSidesGr2);
+
 
         MessageGroupBatch messageGroupBatch = MessageGroupBatch.newBuilder()
                 .addGroups(MessageGroup.newBuilder()

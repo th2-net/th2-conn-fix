@@ -13,6 +13,7 @@ import quickfix.MessageUtils;
 import quickfix.Session;
 import quickfix.SessionID;
 import quickfix.field.BeginSeqNo;
+import quickfix.field.DefaultApplVerID;
 import quickfix.field.EndSeqNo;
 import quickfix.field.MsgType;
 import quickfix.field.NewPassword;
@@ -29,6 +30,7 @@ import java.io.ObjectInputStream;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
+import java.util.Map;
 
 public class ClientApplication implements Application {
 
@@ -44,6 +46,7 @@ public class ClientApplication implements Application {
     @Override
     public void onLogon(SessionID sessionId) {
         LOGGER.info(">> onLogon for session: {}", sessionId);
+
     }
 
     @Override
@@ -60,59 +63,67 @@ public class ClientApplication implements Application {
     public void toAdmin(Message message, SessionID sessionId) {
 
         String msgType = getMsgType(message);
+        Map<String, SessionID> sessionIDBySessionAlias = settings.getSessionIDsByAliases();
 
         if (MsgType.LOGON.equals(msgType)) {
 
             for (FixBean sessionSettings : settings.getSessionSettings()) {
-                if (sessionId.equals(MessageUtils.getSessionID(message)) && SETTING_VALUE_YES.equals(sessionSettings.getEncryptPassword())) {
 
-                    Session session = Session.lookupSession(sessionId);
+                if (MessageUtils.getSessionID(message).equals(sessionIDBySessionAlias.get(sessionSettings.getSessionAlias()))) {
 
-                    try {
-                        session.getStore().refresh();
-                    } catch (IOException e) {
-                        LOGGER.error("Failed to update session state while preparing Logon message", e);
-                    }
+                    if (SETTING_VALUE_YES.equals(sessionSettings.getEncryptPassword())) {
+                        Session session = Session.lookupSession(sessionId);
 
-                    String username = validateLogonFieldsNotNullOrEmpty(sessionSettings.getUsername(), sessionId);
-                    String password = validateLogonFieldsNotNullOrEmpty(sessionSettings.getPassword(), sessionId);
-                    String newPassword = validateLogonFieldsNotNullOrEmpty(sessionSettings.getNewPassword(), sessionId);
-                    String keyFile = sessionSettings.getEncryptionKeyFilePath();
-
-                    PublicKey publicKey = null;
-                    String encryptedPassword = null;
-                    String encryptedNewPassword = null;
-
-                    try (ObjectInputStream inputStream = new ObjectInputStream(new FileInputStream(keyFile))) {
-                        publicKey = (PublicKey) inputStream.readObject();
-                    } catch (IOException | ClassNotFoundException e) {
-                        LOGGER.error("Failed to open file with public key for encrypting", e);
-                    }
-
-                    try {
-                        Cipher cipher = Cipher.getInstance("RSA");
-                        cipher.init(Cipher.ENCRYPT_MODE, publicKey);
-
-                        byte[] encryptedPasswordBytes = cipher.doFinal(password.getBytes());
-                        encryptedPassword = new String(Base64.encodeBase64(encryptedPasswordBytes));
-
-                        if (newPassword != null && !newPassword.isEmpty()) {
-                            byte[] encryptedNewPasswordBytes = cipher.doFinal(newPassword.getBytes());
-                            encryptedNewPassword = new String(Base64.encodeBase64(encryptedNewPasswordBytes));
+                        try {
+                            session.getStore().refresh();
+                        } catch (IOException e) {
+                            LOGGER.error("Failed to update session state while preparing Logon message", e);
                         }
-                    } catch (NoSuchAlgorithmException | InvalidKeyException | NoSuchPaddingException |
-                            IllegalBlockSizeException | BadPaddingException e) {
-                        LOGGER.error("Failed to encrypt password", e);
+
+                        String username = validateLogonFieldsNotNullOrEmpty(sessionSettings.getUsername(), sessionId);
+                        String password = validateLogonFieldsNotNullOrEmpty(sessionSettings.getPassword(), sessionId);
+                        String newPassword = validateLogonFieldsNotNullOrEmpty(sessionSettings.getNewPassword(), sessionId);
+                        String keyFile = sessionSettings.getEncryptionKeyFilePath();
+
+                        PublicKey publicKey = null;
+                        String encryptedPassword = null;
+                        String encryptedNewPassword = null;
+
+                        try (ObjectInputStream inputStream = new ObjectInputStream(new FileInputStream(keyFile))) {
+                            publicKey = (PublicKey) inputStream.readObject();
+                        } catch (IOException | ClassNotFoundException e) {
+                            LOGGER.error("Failed to open file with public key for encrypting", e);
+                        }
+
+                        try {
+                            Cipher cipher = Cipher.getInstance("RSA");
+                            cipher.init(Cipher.ENCRYPT_MODE, publicKey);
+
+                            byte[] encryptedPasswordBytes = cipher.doFinal(password.getBytes());
+                            encryptedPassword = new String(Base64.encodeBase64(encryptedPasswordBytes));
+
+                            if (newPassword != null && !newPassword.isEmpty()) {
+                                byte[] encryptedNewPasswordBytes = cipher.doFinal(newPassword.getBytes());
+                                encryptedNewPassword = new String(Base64.encodeBase64(encryptedNewPasswordBytes));
+                            }
+                        } catch (NoSuchAlgorithmException | InvalidKeyException | NoSuchPaddingException |
+                                IllegalBlockSizeException | BadPaddingException e) {
+                            LOGGER.error("Failed to encrypt password", e);
+                        }
+
+                        if (username != null && !username.isEmpty()) {
+                            message.getHeader().setString(Username.FIELD, username);
+                        }
+                        if (encryptedPassword != null) {
+                            message.getHeader().setString(Password.FIELD, encryptedPassword);
+                        }
+                        if (encryptedNewPassword != null) {
+                            message.getHeader().setString(NewPassword.FIELD, encryptedNewPassword);
+                        }
                     }
 
-                    if (username != null && !username.isEmpty()) {
-                        message.getHeader().setString(Username.FIELD, username);
-                    }
-                    if (encryptedPassword != null) {
-                        message.getHeader().setString(Password.FIELD, encryptedPassword);
-                    }
-                    if (encryptedNewPassword != null) {
-                        message.getHeader().setString(NewPassword.FIELD, encryptedNewPassword);
+                    if (!sessionSettings.isUseDefaultApplVerID()) {
+                        message.removeField(DefaultApplVerID.FIELD);
                     }
                 }
             }

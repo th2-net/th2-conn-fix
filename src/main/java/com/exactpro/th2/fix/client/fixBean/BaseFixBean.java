@@ -58,6 +58,7 @@ public class BaseFixBean {
     protected String fakeResendRequest = null;
     protected String orderingFields = null;
     protected boolean autorelogin = true;
+    protected boolean useDefaultApplVerID = true;
 
 
     public BaseFixBean() {
@@ -98,7 +99,7 @@ public class BaseFixBean {
         addToConfig(SETTING_TIMEZONE, timeZone, stringBuilder);
         addToConfig(SETTING_START_TIME, startTime, stringBuilder);
         addToConfig(SETTING_END_TIME, endTime, stringBuilder);
-        addToConfig(SETTING_START_DAY, startDay,stringBuilder);
+        addToConfig(SETTING_START_DAY, startDay, stringBuilder);
         addToConfig(SETTING_END_DAY, endDay, stringBuilder);
         addToConfig(SETTING_TIMESTAMP_PRECISION, timeStampPrecision, stringBuilder);
         addToConfig(SETTING_ENABLE_NEXT_EXPECTED_MSG_SEQ_NUM, enableNextExpectedMsgSeqNum, stringBuilder);
@@ -122,9 +123,9 @@ public class BaseFixBean {
     }
 
     public void setReconnectInterval(long reconnectInterval) {
-        if (!autorelogin){
-            this.reconnectInterval =  1_000_000_000;
-        }else {
+        if (!autorelogin) {
+            this.reconnectInterval = 1_000_000_000;
+        } else {
             this.reconnectInterval = requirePositive(SETTING_RECONNECT_INTERVAL, reconnectInterval);
         }
     }
@@ -216,9 +217,17 @@ public class BaseFixBean {
 
     public void setAutorelogin(boolean autorelogin) {
         this.autorelogin = autorelogin;
-        if (!autorelogin){
+        if (!autorelogin) {
             this.reconnectInterval = 1_000_000_000;
         }
+    }
+
+    public void setUseDefaultApplVerID(boolean useDefaultApplVerID) {
+        this.useDefaultApplVerID = useDefaultApplVerID;
+    }
+
+    public boolean isUseDefaultApplVerID() {
+        return useDefaultApplVerID;
     }
 
     public String getOrderingFields() {
@@ -468,6 +477,7 @@ public class BaseFixBean {
                 .append("FakeResendRequest", fakeResendRequest)
                 .append("OrderingFields", orderingFields)
                 .append("Autorelogine", autorelogin)
+                .append("UseDefaultApplVerID", useDefaultApplVerID)
 
                 .toString();
     }
