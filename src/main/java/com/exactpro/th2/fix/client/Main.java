@@ -14,7 +14,6 @@ import com.exactpro.th2.common.schema.message.MessageRouter;
 import com.exactpro.th2.common.schema.message.MessageRouterUtils;
 import com.exactpro.th2.common.schema.message.SubscriberMonitor;
 import com.exactpro.th2.fix.client.exceptions.CreatingConfigFileException;
-import com.exactpro.th2.fix.client.exceptions.IncorrectFixFileNameException;
 import com.exactpro.th2.fix.client.fixBean.BaseFixBean;
 import com.exactpro.th2.fix.client.fixBean.FixBean;
 import com.exactpro.th2.fix.client.impl.Destructor;
@@ -36,15 +35,12 @@ import quickfix.Session;
 import quickfix.SessionID;
 import quickfix.SessionSettings;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
@@ -54,8 +50,6 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 import static com.exactpro.th2.common.message.MessageUtils.toJson;
 
@@ -113,50 +107,21 @@ public class Main {
 
         JsonMapper mapper = JsonMapper.builder().build();
         Settings settings = factory.getCustomConfiguration(Settings.class, mapper);
-        Path temporaryDirectory = Files.createTempDirectory("conn-qfj-dictionaries");
 
-        try (InputStream rawBase64 = factory.readDictionary();
-             ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(Base64
-                     .getDecoder()
-                     .decode(rawBase64.readAllBytes()));
-             ZipInputStream zipInputStream = new ZipInputStream(byteArrayInputStream)) {
-            ZipEntry zipEntry = null;
-            try {
-                while ((zipEntry = zipInputStream.getNextEntry()) != null) {
-                    Path filePath = Path.of(zipEntry.getName());
-                    if (!filePath.toString().endsWith(".xml")) {
-                        throw new IncorrectFixFileNameException("Incorrect FIX dictionary file name: " + filePath.getFileName());
-                    }
-                    Path pathToDictionary = Files.createFile(getPathToDictionary(temporaryDirectory, filePath));
-                    Files.write(pathToDictionary, zipInputStream.readAllBytes());
-                    new DataDictionary(pathToDictionary.toString()); //check that xml file contains the correct values
+        try (InputStream dictionary = factory.readDictionary()) {
+            var dictionariesDir = Files.createTempDirectory("conn-qfj-dictionaries");
+            var dictionaries = SailfishDictionaryLoader.INSTANCE.load(dictionary, dictionariesDir);
+
+            for (var session : settings.sessionSettings) {
+                if (session.getBeginString().equals("FIXT.1.1")) {
+                    session.setTransportDataDictionary(dictionaries.getTransport());
+                    session.setAppDataDictionary(dictionaries.getApp());
+                } else {
+                    session.setDataDictionary(dictionaries.getApp());
                 }
-            } catch (IncorrectFixFileNameException | ConfigError e) {
-                throw new Exception("Failed to unzip dictionaries along the path: " + zipEntry.getName(), e);
             }
-        } catch (IOException e) {
-            throw new Exception("Failed to create DataDictionary", e);
-        }
-
-        for (FixBean sessionSetting : settings.sessionSettings) {
-            SessionID sessionID = FixBeanUtil.getSessionID(sessionSetting);
-            if (sessionSetting.getBeginString().equals("FIXT.1.1")) {
-
-                Path transportDataDictionary = Objects.requireNonNull(sessionSetting.getTransportDataDictionary(), () -> "TransportDataDictionary is null for session: " + sessionID);
-                Path appDataDictionary = Objects.requireNonNull(sessionSetting.getAppDataDictionary(), () -> "AppDataDictionary is null for session: " + sessionID);
-
-                Path pathToTransportDataDictionary = getPathToDictionary(temporaryDirectory, requireNotAbsolute(transportDataDictionary));
-                Path pathToAppDataDictionary = getPathToDictionary(temporaryDirectory, requireNotAbsolute(appDataDictionary));
-
-                sessionSetting.setTransportDataDictionary(requireFileExist(pathToTransportDataDictionary));
-                sessionSetting.setAppDataDictionary(requireFileExist(pathToAppDataDictionary));
-            } else {
-                Path dataDictionary = Objects.requireNonNull(sessionSetting.getDataDictionary(), () -> "DataDictionary is null for session: " + sessionID);
-
-                Path pathToDataDictionary = getPathToDictionary(temporaryDirectory, requireNotAbsolute(dataDictionary));
-
-                sessionSetting.setDataDictionary(requireFileExist(pathToDataDictionary));
-            }
+        } catch (Exception e) {
+            throw new Exception("Failed to load dictionary", e);
         }
 
         MessageRouter<EventBatch> eventRouter = factory.getEventBatchRouter();
@@ -173,24 +138,6 @@ public class Main {
             System.exit(1);
         }
 
-    }
-
-    private static Path requireNotAbsolute(Path path) {
-        if (path.isAbsolute()) {
-            throw new IllegalStateException("Dictionary path must not be absolute: " + path);
-        }
-        return path;
-    }
-
-    private static Path requireFileExist(Path pathToDictionary) {
-        if (Files.notExists(pathToDictionary)) {
-            throw new IllegalStateException("No dictionary along this path: " + pathToDictionary);
-        }
-        return pathToDictionary;
-    }
-
-    private static Path getPathToDictionary(Path dictionariesDirectory, Path dictionaryPath) {
-        return dictionariesDirectory.resolve(dictionaryPath);
     }
 
     public static void run(Settings settings, MessageRouter<MessageGroupBatch> messageRouter, MessageRouter<EventBatch> eventRouter,
