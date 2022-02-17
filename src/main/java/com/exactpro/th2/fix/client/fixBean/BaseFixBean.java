@@ -59,6 +59,8 @@ public class BaseFixBean {
     protected String orderingFields = null;
     protected boolean autorelogin = true;
     protected boolean useDefaultApplVerID = true;
+    protected String defaultCstmApplVerID = null;
+    protected String checkRequiredTags = "Y";
 
 
     public BaseFixBean() {
@@ -103,6 +105,7 @@ public class BaseFixBean {
         addToConfig(SETTING_END_DAY, endDay, stringBuilder);
         addToConfig(SETTING_TIMESTAMP_PRECISION, timeStampPrecision, stringBuilder);
         addToConfig(SETTING_ENABLE_NEXT_EXPECTED_MSG_SEQ_NUM, enableNextExpectedMsgSeqNum, stringBuilder);
+        addToConfig(SETTING_CHECK_REQUIRED_TAGS, checkRequiredTags, stringBuilder);
 
         return stringBuilder;
     }
@@ -230,8 +233,12 @@ public class BaseFixBean {
         return useDefaultApplVerID;
     }
 
-    public String getOrderingFields() {
-        return orderingFields;
+    public void setCheckRequiredTags(String checkRequiredTags) {
+        this.checkRequiredTags = convertFromBoolToYOrN("CheckRequiredTags", checkRequiredTags);
+    }
+
+    public String isCheckRequiredTags() {
+        return checkRequiredTags;
     }
 
     public String getTimeStampPrecision() {
@@ -272,6 +279,18 @@ public class BaseFixBean {
 
     public void setEndDay(String endDay) {
         this.endDay = requireNotNullOrBlank(SETTING_END_DAY, endDay);
+    }
+
+    public void setDefaultCstmApplVerID(String defaultCstmApplVerID) {
+        this.defaultCstmApplVerID = requireNotNullOrBlank("DefaultCstmApplVerID", defaultCstmApplVerID);
+    }
+
+    public String getDefaultCstmApplVerID() {
+        return defaultCstmApplVerID;
+    }
+
+    public String getOrderingFields() {
+        return orderingFields;
     }
 
     public String getRequiresOrigSendingTime() {
@@ -478,6 +497,8 @@ public class BaseFixBean {
                 .append("OrderingFields", orderingFields)
                 .append("Autorelogine", autorelogin)
                 .append("UseDefaultApplVerID", useDefaultApplVerID)
+                .append("DefaultCstmApplVerID", defaultCstmApplVerID)
+                .append("CheckRequiredTags", checkRequiredTags)
 
                 .toString();
     }

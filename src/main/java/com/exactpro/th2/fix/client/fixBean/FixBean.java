@@ -53,7 +53,7 @@ public class FixBean extends BaseFixBean {
     protected String username = null;
     protected String password = null;
     protected String newPassword = null;
-    protected String encryptPassword = "N";
+    protected String encryptPassword = null;
     protected String encryptionKeyFilePath = null;
 
     private int logonTagIndex = 0;

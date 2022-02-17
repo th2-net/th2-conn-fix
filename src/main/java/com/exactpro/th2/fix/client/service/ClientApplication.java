@@ -14,6 +14,7 @@ import quickfix.Session;
 import quickfix.SessionID;
 import quickfix.field.BeginSeqNo;
 import quickfix.field.DefaultApplVerID;
+import quickfix.field.DefaultCstmApplVerID;
 import quickfix.field.EndSeqNo;
 import quickfix.field.MsgType;
 import quickfix.field.NewPassword;
@@ -111,6 +112,8 @@ public class ClientApplication implements Application {
                             LOGGER.error("Failed to encrypt password", e);
                         }
 
+                        String defaultCstmApplVerID = sessionSettings.getDefaultCstmApplVerID();
+
                         if (username != null && !username.isEmpty()) {
                             message.getHeader().setString(Username.FIELD, username);
                         }
@@ -120,6 +123,11 @@ public class ClientApplication implements Application {
                         if (encryptedNewPassword != null) {
                             message.getHeader().setString(NewPassword.FIELD, encryptedNewPassword);
                         }
+                        if (defaultCstmApplVerID != null){
+                            message.setString(DefaultCstmApplVerID.FIELD, defaultCstmApplVerID);
+                        }
+                        LOGGER.debug("Username = {}, Password = {}, NewPassword = {}, DefaultCstmApplVerID = {}",
+                                username, password, newPassword, defaultCstmApplVerID);
                     }
 
                     if (!sessionSettings.isUseDefaultApplVerID()) {
@@ -138,7 +146,7 @@ public class ClientApplication implements Application {
 
         if (MsgType.RESEND_REQUEST.equals(msgType)) {
             for (FixBean sessionSettings : settings.getSessionSettings()) {
-                if (sessionId.equals(MessageUtils.getSessionID(message)) && SETTING_VALUE_YES.equals(sessionSettings.getFakeResendRequest())) {
+                if (sessionId.equals(MessageUtils.getReverseSessionID(message)) && SETTING_VALUE_YES.equals(sessionSettings.getFakeResendRequest())) {
 
                     MessageFactory messageFactory = session.getMessageFactory();
                     String beginString = sessionId.getBeginString();

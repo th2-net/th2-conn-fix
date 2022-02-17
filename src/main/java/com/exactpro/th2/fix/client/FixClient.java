@@ -8,14 +8,17 @@ import com.exactpro.th2.fix.client.service.ClientApplication;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import quickfix.ConfigError;
+import quickfix.DefaultMessageFactory;
 import quickfix.FileLogFactory;
 import quickfix.FileStoreFactory;
 import quickfix.LogFactory;
 import quickfix.MessageFactory;
 import quickfix.MessageStoreFactory;
+import quickfix.SessionFactory;
 import quickfix.SessionID;
 import quickfix.SessionSettings;
-import quickfix.ThreadedSocketInitiator;
+import quickfix.SocketInitiator;
+import quickfix.mina.SessionConnector;
 
 import java.util.Map;
 
@@ -24,7 +27,7 @@ public class FixClient {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FixClient.class);
 
-    private final ThreadedSocketInitiator initiator;
+    private final SocketInitiator initiator;
     private volatile boolean isRunning = false;
 
 
@@ -35,8 +38,11 @@ public class FixClient {
         MessageStoreFactory messageStoreFactory = new FileStoreFactory(settings);
         LogFactory logFactory = new LogFactoryImpl(new FileLogFactory(settings), messageRouter, eventRouter, connections, rootEventId);
         MessageFactory messageFactory = new FixMessageFactory();
+        new DefaultMessageFactory();
+//        SessionFactory sessionFactory = new FixSessionFactory(application, messageStoreFactory, settings, logFactory, messageFactory);
 
-        initiator = new ThreadedSocketInitiator(application, messageStoreFactory, settings, logFactory, messageFactory, queueCapacity);
+//        initiator = new SocketInitiator(sessionFactory, settings, 10_000);
+        initiator = new SocketInitiator(application, messageStoreFactory, settings, logFactory, messageFactory, queueCapacity);
 
     }
 

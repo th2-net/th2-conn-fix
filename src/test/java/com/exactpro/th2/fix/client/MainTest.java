@@ -39,6 +39,7 @@ import quickfix.field.OrdType;
 import quickfix.field.PartyID;
 import quickfix.field.PartyIDSource;
 import quickfix.field.PartyRole;
+import quickfix.field.PreviouslyReported;
 import quickfix.field.SenderCompID;
 import quickfix.field.Side;
 import quickfix.field.Symbol;
@@ -84,6 +85,8 @@ public class MainTest extends Main {
         fixBean.setUsername("Tanos");
         fixBean.setPassword("1234");
         fixBean.setNewPassword("123");
+        fixBean.setCheckRequiredTags("true");
+        fixBean.setResetOnLogon("true");
 
         FixBean fixBean1 = new FixBean();
         fixBean1.setBeginString("FIXT.1.1");
@@ -102,10 +105,11 @@ public class MainTest extends Main {
         fixBean1.setResetOnLogon("false");
         fixBean1.setPassword("1234");
         fixBean1.setNewPassword("123");
+        fixBean1.setResetOnLogon("true");
 
         List<FixBean> fixBeans = new ArrayList<>();
         fixBeans.add(fixBean);
-        fixBeans.add(fixBean1);
+//        fixBeans.add(fixBean1);
         settings.setSessionSettings(fixBeans);
 
         System.out.println(settings);
@@ -178,6 +182,7 @@ public class MainTest extends Main {
 
 
         fixMessage1.setField(new TradeReportID("tradeID"));
+        fixMessage1.setField(new PreviouslyReported(true));
         fixMessage1.setField(new TrdType(1));
 
         Group noSidesGr1 = new Group(new NoSides().getField(), new Side().getField());
@@ -252,9 +257,9 @@ public class MainTest extends Main {
         Thread.sleep(5000);
 
         messageRouter.sendToSubscriber("client1", messageGroupBatch);
-        messageRouter.sendToSubscriber("client2", messageGroupBatch2);
+//        messageRouter.sendToSubscriber("client2", messageGroupBatch2);
 
-        Thread.sleep(5000);
+        Thread.sleep(1000 * 60 * 3);
 
         String testString;
         int countOfOrders = 0;
