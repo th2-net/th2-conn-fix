@@ -55,6 +55,8 @@ public class FixBean extends BaseFixBean {
     protected String newPassword = null;
     protected String encryptPassword = null;
     protected String encryptionKeyFilePath = null;
+    protected Integer seqNumSender = 0;
+    protected Integer seqNumTarget = 0;
 
     private int logonTagIndex = 0;
 
@@ -217,6 +219,28 @@ public class FixBean extends BaseFixBean {
 
     public void setEncryptionKeyFilePath(String encryptionKeyFilePath) {
         this.encryptionKeyFilePath = requireNotNullOrBlank("EncryptionKeyFilePath", encryptionKeyFilePath);
+    }
+
+    public void setSeqNumSender(int seqNumSender) {
+        if (seqNumSender < 0){
+            throw new IllegalArgumentException("seqNumSender must not be negative");
+        }
+        this.seqNumSender = seqNumSender;
+    }
+
+    public void setSeqNumTarget(int seqNumTarget) {
+        if (seqNumTarget < 0){
+            throw new IllegalArgumentException("seqNumTarget must not be negative");
+        }
+        this.seqNumTarget = seqNumTarget;
+    }
+
+    public Integer getSeqNumTarget() {
+        return seqNumTarget;
+    }
+
+    public Integer getSeqNumSender() {
+        return seqNumSender;
     }
 
     public String getUsername() {

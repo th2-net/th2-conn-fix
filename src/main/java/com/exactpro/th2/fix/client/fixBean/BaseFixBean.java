@@ -61,7 +61,8 @@ public class BaseFixBean {
     protected boolean useDefaultApplVerID = true;
     protected String defaultCstmApplVerID = null;
     protected String checkRequiredTags = "Y";
-
+    private String seqNumberFromRejectRegexp = null;
+    private String seqNumberFromLogoutRegexp = null;
 
     public BaseFixBean() {
     }
@@ -285,6 +286,22 @@ public class BaseFixBean {
         this.defaultCstmApplVerID = requireNotNullOrBlank("DefaultCstmApplVerID", defaultCstmApplVerID);
     }
 
+    public void setSeqNumberFromLogoutRegexp(String seqNumberFromLogoutRegexp) {
+        this.seqNumberFromLogoutRegexp = seqNumberFromLogoutRegexp;
+    }
+
+    public void setSeqNumberFromRejectRegexp(String seqNumberFromRejectRegexp) {
+        this.seqNumberFromRejectRegexp = seqNumberFromRejectRegexp;
+    }
+
+    public String getSeqNumberFromRejectRegexp() {
+        return seqNumberFromRejectRegexp;
+    }
+
+    public String getSeqNumberFromLogoutRegexp() {
+        return seqNumberFromLogoutRegexp;
+    }
+
     public String getDefaultCstmApplVerID() {
         return defaultCstmApplVerID;
     }
@@ -499,7 +516,8 @@ public class BaseFixBean {
                 .append("UseDefaultApplVerID", useDefaultApplVerID)
                 .append("DefaultCstmApplVerID", defaultCstmApplVerID)
                 .append("CheckRequiredTags", checkRequiredTags)
-
+                .append("SeqNumberFromRejectRegexp", seqNumberFromRejectRegexp)
+                .append("SeqNumberFromLogoutRegexp", seqNumberFromLogoutRegexp)
                 .toString();
     }
 }

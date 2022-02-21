@@ -22,6 +22,7 @@ import com.google.protobuf.ByteString;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import quickfix.ConfigError;
@@ -58,8 +59,30 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 
 public class MainTest extends Main {
 
-    @Test
+    @Ignore
+    @Test //for manual test
     public void runTest() throws Exception {
+
+//newOrderSingle
+//        Message fixMessage = new Message();
+//        Message.Header header = fixMessage.getHeader();
+//        header.setField(new BeginString("FIX.4.2"));
+//        header.setField(new MsgType("D"));
+//        header.setField(new SenderCompID("client"));
+//        header.setField(new TargetCompID("server"));
+//        header.setField(new SenderSubID("sendSubId"));
+//        header.setField(new TargetSubID("tarSubId"));
+
+//
+//        quickfix.fix42.NewOrderSingle fixMessage2 = new quickfix.fix42.NewOrderSingle(
+//                new ClOrdID("ClOrdID"),
+//                new HandlInst('3'),
+//                new Symbol("Symbol"),
+//                new Side('1'),
+//                new TransactTime(LocalDateTime.now()),
+//                new OrdType('1'));
+//        fixMessage2.setField(new SenderCompID("client2"));
+//        fixMessage2.setField(new TargetCompID("server"));
 
         Main.Settings settings = new Settings();
 
@@ -67,26 +90,27 @@ public class MainTest extends Main {
         fixBean.setBeginString("FIX.4.4");
         fixBean.setSenderCompID("client");
         fixBean.setTargetCompID("server");
-//        fixBean.setSenderSubID("sendSubId");
-//        fixBean.setTargetSubID("tarSubId");
         fixBean.setSocketConnectPort(9877);
         fixBean.setSessionAlias("client1");
-//        fixBean.setTransportDataDictionary(Path.of("/Users/dmitry_yugai/IdeaProjects/th2-conn-qfj/src/test/java/resources/FIXT11.xml"));
-//        fixBean.setAppDataDictionary(Path.of("/Users/dmitry_yugai/IdeaProjects/th2-conn-qfj/src/test/java/resources/FIX50SP2.xml"));
-        fixBean.setDataDictionary(Path.of("/Users/dmitry_yugai/IdeaProjects/th2-conn-qfj/src/test/java/resources/FIX44.xml"));
+        fixBean.setDataDictionary(Path.of("src/test/java/resources/FIX44.xml"));
         fixBean.setOrderingFields("true");
-        fixBean.setStartTime("15:31:00 Europe/Moscow");
+        fixBean.setStartTime("00:00:00 Europe/Moscow");
         fixBean.setEndTime("21:15:00 Europe/Moscow");
         fixBean.setStartDay("monday");
         fixBean.setEndDay("sunday");
-        fixBean.setAutorelogin(false);
+        fixBean.setReconnectInterval(10);
+        fixBean.setAutorelogin(true);
         fixBean.setResetOnLogon("false");
         fixBean.setUseDefaultApplVerID(true);
-        fixBean.setUsername("Tanos");
+        fixBean.setUsername("username");
         fixBean.setPassword("1234");
         fixBean.setNewPassword("123");
         fixBean.setCheckRequiredTags("true");
-        fixBean.setResetOnLogon("true");
+        fixBean.setSeqNumberFromRejectRegexp("Wrong sequence number!");
+        fixBean.setSeqNumSender(2);
+        fixBean.setSeqNumTarget(2);
+//        fixBean.setResetOnLogon("true");
+
 
         FixBean fixBean1 = new FixBean();
         fixBean1.setBeginString("FIXT.1.1");
@@ -95,8 +119,8 @@ public class MainTest extends Main {
         fixBean1.setTargetCompID("server");
         fixBean1.setSocketConnectPort(9877);
         fixBean1.setSessionAlias("client2");
-        fixBean1.setTransportDataDictionary(Path.of("/Users/dmitry_yugai/IdeaProjects/th2-conn-qfj/src/test/java/resources/FIXT11.xml"));
-        fixBean1.setAppDataDictionary(Path.of("/Users/dmitry_yugai/IdeaProjects/th2-conn-qfj/src/test/java/resources/FIX50SP2.xml"));
+        fixBean1.setTransportDataDictionary(Path.of("src/test/java/resources/FIXT11.xml"));
+        fixBean1.setAppDataDictionary(Path.of("src/test/java/resources/FIX50SP2.xml"));
         fixBean1.setStartTime("15:15:00 Europe/Moscow");
         fixBean1.setEndTime("21:15:00 Europe/Moscow");
         fixBean1.setStartDay("monday");
@@ -127,26 +151,7 @@ public class MainTest extends Main {
             }
         });
         thread.start();
-//
-//        Message fixMessage = new Message();
-//        Message.Header header = fixMessage.getHeader();
-//        header.setField(new BeginString("FIX.4.2"));
-//        header.setField(new MsgType("D"));
-//        header.setField(new SenderCompID("client"));
-//        header.setField(new TargetCompID("server"));
-//        header.setField(new SenderSubID("sendSubId"));
-//        header.setField(new TargetSubID("tarSubId"));
 
-//
-//        quickfix.fix42.NewOrderSingle fixMessage2 = new quickfix.fix42.NewOrderSingle(
-//                new ClOrdID("ClOrdID"),
-//                new HandlInst('3'),
-//                new Symbol("Symbol"),
-//                new Side('1'),
-//                new TransactTime(LocalDateTime.now()),
-//                new OrdType('1'));
-//        fixMessage2.setField(new SenderCompID("client2"));
-//        fixMessage2.setField(new TargetCompID("server"));
 
         Message fixMessage2 = new Message();
         Message.Header header2 = fixMessage2.getHeader();
@@ -254,8 +259,7 @@ public class MainTest extends Main {
                         .build())
                 .build();
 
-        Thread.sleep(5000);
-
+        Thread.sleep(14000);
         messageRouter.sendToSubscriber("client1", messageGroupBatch);
 //        messageRouter.sendToSubscriber("client2", messageGroupBatch2);
 

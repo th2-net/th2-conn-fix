@@ -7,3 +7,4 @@ shared
 *.log
 storage
 messages
+.DS_Store
