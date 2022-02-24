@@ -146,7 +146,7 @@ public class ClientApplication implements Application {
 
             for (FixBean sessionSettings : settings.getSessionSettings()) {
 
-                if (MessageUtils.getSessionID(message).equals(sessionIDBySessionAlias.get(sessionSettings.getSessionAlias()))) {
+                if (sessionId.equals(sessionIDBySessionAlias.get(sessionSettings.getSessionAlias()))) {
 
                     if (SETTING_VALUE_YES.equals(sessionSettings.getEncryptPassword())) {
 
@@ -187,8 +187,6 @@ public class ClientApplication implements Application {
                             LOGGER.error("Failed to encrypt password", e);
                         }
 
-                        String defaultCstmApplVerID = sessionSettings.getDefaultCstmApplVerID();
-
                         if (username != null && !username.isEmpty()) {
                             message.getHeader().setString(Username.FIELD, username);
                         }
@@ -198,11 +196,13 @@ public class ClientApplication implements Application {
                         if (encryptedNewPassword != null) {
                             message.getHeader().setString(NewPassword.FIELD, encryptedNewPassword);
                         }
-                        if (defaultCstmApplVerID != null) {
-                            message.setString(DefaultCstmApplVerID.FIELD, defaultCstmApplVerID);
-                        }
-                        LOGGER.debug("Username = {}, Password = {}, NewPassword = {}, DefaultCstmApplVerID = {}",
-                                username, password, newPassword, defaultCstmApplVerID);
+                        LOGGER.debug("Username = {}, Password = {}, NewPassword = {}", username, password, newPassword);
+                    }
+
+                    String defaultCstmApplVerID = sessionSettings.getDefaultCstmApplVerID();
+
+                    if (defaultCstmApplVerID != null) {
+                        message.setString(DefaultCstmApplVerID.FIELD, defaultCstmApplVerID);
                     }
 
                     if (!sessionSettings.isUseDefaultApplVerID()) {

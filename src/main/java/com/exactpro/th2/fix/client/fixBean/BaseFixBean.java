@@ -61,8 +61,8 @@ public class BaseFixBean {
     protected boolean useDefaultApplVerID = true;
     protected String defaultCstmApplVerID = null;
     protected String checkRequiredTags = "Y";
-    private String seqNumberFromRejectRegexp = null;
-    private String seqNumberFromLogoutRegexp = null;
+    protected String seqNumberFromRejectRegexp = null;
+    protected String seqNumberFromLogoutRegexp = null;
 
     public BaseFixBean() {
     }

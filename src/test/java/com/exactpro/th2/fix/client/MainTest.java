@@ -103,13 +103,14 @@ public class MainTest extends Main {
         fixBean.setResetOnLogon("false");
         fixBean.setUseDefaultApplVerID(true);
         fixBean.setUsername("username");
-        fixBean.setPassword("1234");
-        fixBean.setNewPassword("123");
+        fixBean.setPassword("123");
+//        fixBean.setNewPassword("123");
         fixBean.setCheckRequiredTags("true");
-        fixBean.setSeqNumberFromRejectRegexp("Wrong sequence number!");
-        fixBean.setSeqNumSender(2);
-        fixBean.setSeqNumTarget(2);
+//        fixBean.setSeqNumberFromRejectRegexp("Wrong sequence number!");
+//        fixBean.setSeqNumSender(2);
+//        fixBean.setSeqNumTarget(2);
 //        fixBean.setResetOnLogon("true");
+        fixBean.setEncryptPassword("false");
 
 
         FixBean fixBean1 = new FixBean();
