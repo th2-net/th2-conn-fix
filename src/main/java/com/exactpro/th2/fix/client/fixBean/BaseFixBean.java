@@ -63,6 +63,10 @@ public class BaseFixBean {
     protected String checkRequiredTags = "Y";
     protected String seqNumberFromRejectRegexp = null;
     protected String seqNumberFromLogoutRegexp = null;
+    protected String persistMessages = null;
+    protected String validateFieldsOutOfRange = "Y";
+    protected String duplicateTagsAllowed = "N";
+    protected String ignoreAbsenceOf141tag = "N";
 
     public BaseFixBean() {
     }
@@ -107,6 +111,10 @@ public class BaseFixBean {
         addToConfig(SETTING_TIMESTAMP_PRECISION, timeStampPrecision, stringBuilder);
         addToConfig(SETTING_ENABLE_NEXT_EXPECTED_MSG_SEQ_NUM, enableNextExpectedMsgSeqNum, stringBuilder);
         addToConfig(SETTING_CHECK_REQUIRED_TAGS, checkRequiredTags, stringBuilder);
+        addToConfig(SETTING_PERSIST_MESSAGES, persistMessages, stringBuilder);
+        addToConfig(SETTING_VALIDATE_FIELDS_OUT_OF_ORDER, validateFieldsOutOfOrder, stringBuilder);
+        addToConfig(SETTING_DUPLICATE_TAGS_ALLOWED, duplicateTagsAllowed, stringBuilder);
+        addToConfig(SETTING_IGNORE_ABSENCE_OF_141_TAG, ignoreAbsenceOf141tag, stringBuilder);
 
         return stringBuilder;
     }
@@ -236,6 +244,38 @@ public class BaseFixBean {
 
     public void setCheckRequiredTags(String checkRequiredTags) {
         this.checkRequiredTags = convertFromBoolToYOrN("CheckRequiredTags", checkRequiredTags);
+    }
+
+    public void setPersistMessages(String persistMessages) {
+        this.persistMessages = convertFromBoolToYOrN(SETTING_PERSIST_MESSAGES, persistMessages);
+    }
+
+    public String getPersistMessages() {
+        return persistMessages;
+    }
+
+    public String getValidateFieldsOutOfRange() {
+        return validateFieldsOutOfRange;
+    }
+
+    public void setValidateFieldsOutOfRange(String validateFieldsOutOfRange) {
+        this.validateFieldsOutOfRange = convertFromBoolToYOrN(SETTING_VALIDATE_FIELDS_OUT_OF_ORDER, validateFieldsOutOfRange);
+    }
+
+    public String getDuplicateTagsAllowed() {
+        return duplicateTagsAllowed;
+    }
+
+    public void setDuplicateTagsAllowed(String duplicateTagsAllowed) {
+        this.duplicateTagsAllowed = convertFromBoolToYOrN(SETTING_DUPLICATE_TAGS_ALLOWED, duplicateTagsAllowed);
+    }
+
+    public String getIgnoreAbsenceOf141tag() {
+        return ignoreAbsenceOf141tag;
+    }
+
+    public void setIgnoreAbsenceOf141tag(String ignoreAbsenceOf141tag) {
+        this.ignoreAbsenceOf141tag = convertFromBoolToYOrN(SETTING_IGNORE_ABSENCE_OF_141_TAG, ignoreAbsenceOf141tag);
     }
 
     public String isCheckRequiredTags() {
@@ -515,9 +555,13 @@ public class BaseFixBean {
                 .append("Autorelogine", autorelogin)
                 .append("UseDefaultApplVerID", useDefaultApplVerID)
                 .append("DefaultCstmApplVerID", defaultCstmApplVerID)
-                .append("CheckRequiredTags", checkRequiredTags)
+                .append(SETTING_CHECK_REQUIRED_TAGS, checkRequiredTags)
                 .append("SeqNumberFromRejectRegexp", seqNumberFromRejectRegexp)
                 .append("SeqNumberFromLogoutRegexp", seqNumberFromLogoutRegexp)
+                .append(SETTING_PERSIST_MESSAGES, persistMessages)
+                .append(SETTING_VALIDATE_FIELDS_OUT_OF_RANGE, validateFieldsOutOfRange)
+                .append(SETTING_DUPLICATE_TAGS_ALLOWED, duplicateTagsAllowed)
+                .append(SETTING_IGNORE_ABSENCE_OF_141_TAG, ignoreAbsenceOf141tag)
                 .toString();
     }
 }

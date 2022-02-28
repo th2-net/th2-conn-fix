@@ -19,7 +19,7 @@ repositories {
 
 dependencies {
 
-    implementation 'com.exactpro.th2:common:3.31.5'
+    implementation 'com.exactpro.th2:common:3.32.1'
     implementation 'com.exactpro.th2:grpc-conn:0.0.1'
 
 //    implementation 'org.quickfixj:quickfixj-core:2.3.1'

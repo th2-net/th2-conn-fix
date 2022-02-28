@@ -59,7 +59,6 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 
 public class MainTest extends Main {
 
-    @Ignore
     @Test //for manual test
     public void runTest() throws Exception {
 
@@ -111,7 +110,9 @@ public class MainTest extends Main {
 //        fixBean.setSeqNumTarget(2);
 //        fixBean.setResetOnLogon("true");
         fixBean.setEncryptPassword("false");
-
+        fixBean.setDuplicateTagsAllowed("true");
+        fixBean.setIgnoreAbsenceOf141tag("true");
+        fixBean.setValidateFieldsOutOfRange("true");
 
         FixBean fixBean1 = new FixBean();
         fixBean1.setBeginString("FIXT.1.1");
@@ -163,7 +164,8 @@ public class MainTest extends Main {
         header2.setField(new TargetCompID("server2"));
         fixMessage2.setString(HandlInst.FIELD, "1");
         fixMessage2.setString(Symbol.FIELD, "symbol");
-        fixMessage2.setString(Side.FIELD, "1");
+        fixMessage2.setString(Symbol.FIELD, "symbol2");//duplicate tag
+        fixMessage2.setString(Side.FIELD, "10"); //10 - out of range
         fixMessage2.setUtcTimeStamp(TransactTime.FIELD, LocalDateTime.now());
         fixMessage2.setChar(OrdType.FIELD, '1');
 
@@ -264,7 +266,7 @@ public class MainTest extends Main {
         messageRouter.sendToSubscriber("client1", messageGroupBatch);
 //        messageRouter.sendToSubscriber("client2", messageGroupBatch2);
 
-        Thread.sleep(1000 * 60 * 3);
+        Thread.sleep(1000 * 60 * 1);
 
         String testString;
         int countOfOrders = 0;
