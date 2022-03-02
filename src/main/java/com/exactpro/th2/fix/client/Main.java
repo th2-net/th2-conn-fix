@@ -205,9 +205,11 @@ public class Main {
             connectionIDs.put(sessionId, ConnectionID.newBuilder().setSessionAlias(sessionAlias).build());
         });
 
-        Event rootEvent = MessageRouterUtils.storeEvent(eventRouter, Event.start(), null);
-        rootEvent.name("FIX client " + String.join(":", sessionIDs.keySet()) + " " + Instant.now());
-        rootEvent.type("Microservice");
+        String eventName = "FIX client " + String.join(":", sessionIDs.keySet()) + " " + Instant.now();
+        Event rootEvent = MessageRouterUtils.storeEvent(eventRouter, Event.start()
+                        .name(eventName)
+                        .type("Microservice")
+                , null);
         String rootEventID = rootEvent.getId();
 
         FixClient fixClient = new FixClient(new SessionSettings(configFile.getAbsolutePath()), settings,
@@ -260,7 +262,7 @@ public class Main {
 
                             fixMessage = messageFactory.create(sessionID.getBeginString(), MessageUtils.getMessageType(strMessage), dataDictionary.getOrderedFields());
                             fixMessage.fromString(strMessage, dataDictionary, true);
-                        }else {
+                        } else {
                             fixMessage = MessageUtils.parse(session, strMessage);
                         }
 
@@ -289,7 +291,7 @@ public class Main {
         }
 
         if (settings.autoStart) fixClient.start();
-        if (settings.grpcStartControl){
+        if (settings.grpcStartControl) {
             try {
                 GrpcServer grpcServer = new GrpcServer(grpcRouter.startServer(new ControlService(controller)));
                 resources.add(new Resources("Grpc server", grpcServer::stop));

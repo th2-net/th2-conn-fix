@@ -27,18 +27,18 @@ public class LogImpl implements Log {
     private final MessageRouter<MessageGroupBatch> messageRouter;
     private final MessageRouter<EventBatch> eventRouter;
     private final ConnectionID connectionID;
-    private final String rootEventId;
+    private final String parentEventId;
     private final String sessionAlias;
     private final Supplier<Long> inputSeq = createSequence();
     private final Supplier<Long> outputSeq = createSequence();
 
     public LogImpl(Log log, MessageRouter<MessageGroupBatch> messageRouter, MessageRouter<EventBatch> eventRouter,
-                   ConnectionID connectionID, String rootEventId) {
+                   ConnectionID connectionID, String parentEventId) {
         this.log = log;
         this.messageRouter = messageRouter;
         this.eventRouter = eventRouter;
         this.connectionID = connectionID;
-        this.rootEventId = rootEventId;
+        this.parentEventId = parentEventId;
         this.sessionAlias = connectionID.getSessionAlias();
     }
 
@@ -78,19 +78,19 @@ public class LogImpl implements Log {
     @Override
     public void onEvent(String text) {
         log.onEvent(text);
-        MessageRouterUtils.storeEvent(eventRouter, rootEventId, text, "Info", null);
+        MessageRouterUtils.storeEvent(eventRouter, parentEventId, text, "Info", null);
 
     }
 
     @Override
     public void onErrorEvent(String text) {
         log.onErrorEvent(text);
-        MessageRouterUtils.storeEvent(eventRouter, rootEventId, text, "Error", null);
+        MessageRouterUtils.storeEvent(eventRouter, parentEventId, text, "Error", null);
     }
 
     public void onErrorEvent(String text, Throwable e) {
         log.onErrorEvent(text);
-        MessageRouterUtils.storeEvent(eventRouter, rootEventId, text, "Error", e);
+        MessageRouterUtils.storeEvent(eventRouter, parentEventId, text, "Error", e);
     }
 
     private void onMessage(String message, Direction direction) throws IOException {

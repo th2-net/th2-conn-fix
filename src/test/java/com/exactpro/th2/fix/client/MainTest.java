@@ -22,7 +22,6 @@ import com.google.protobuf.ByteString;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import quickfix.ConfigError;
@@ -135,13 +134,13 @@ public class MainTest extends Main {
 
         List<FixBean> fixBeans = new ArrayList<>();
         fixBeans.add(fixBean);
-//        fixBeans.add(fixBean1);
+        fixBeans.add(fixBean1);
         settings.setSessionSettings(fixBeans);
 
         System.out.println(settings);
         MyMessageRouter messageRouter = new MyMessageRouter();
 
-        MessageRouter<EventBatch> eventRouter = new MyEventRouter();
+        MyEventRouter eventRouter = new MyEventRouter();
         GrpcRouter grpcRouter = Mockito.mock(GrpcRouter.class);
         ConcurrentLinkedDeque<Main.Resources> resources = new ConcurrentLinkedDeque<>();
 
@@ -262,11 +261,17 @@ public class MainTest extends Main {
                         .build())
                 .build();
 
-        Thread.sleep(14000);
+        Thread.sleep(5_000);
         messageRouter.sendToSubscriber("client1", messageGroupBatch);
 //        messageRouter.sendToSubscriber("client2", messageGroupBatch2);
 
-        Thread.sleep(1000 * 60 * 1);
+        Thread.sleep(1000 * 6);
+
+//        System.out.println("events: \n");
+//        for (EventBatch event: eventRouter.messages){
+//
+//            System.out.println(event);
+//        }
 
         String testString;
         int countOfOrders = 0;
@@ -354,6 +359,9 @@ public class MainTest extends Main {
     }
 
     public static class MyEventRouter implements MessageRouter<EventBatch> {
+        
+        List<EventBatch> messages = new ArrayList<>();
+
         @Override
         public void init(@NotNull ConnectionManager connectionManager, @NotNull MessageRouterConfiguration configuration) {
 
@@ -392,6 +400,7 @@ public class MainTest extends Main {
         @Override
         public void sendAll(EventBatch message, String... queueAttr) {
 
+            this.messages.add(message);
         }
 
         @Override
