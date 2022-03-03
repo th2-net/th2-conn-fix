@@ -108,22 +108,23 @@ spec:
   type: th2-conn
   pins:
     - name: to_send
-    connection-type: mq
-    attributes:
-      - subscribe
-      - send
+      connection-type: mq
+      attributes:
+        - subscribe
+        - send
+        - raw
     - name: outgoing_messages
-    connection-type: mq
-    attributes:
-      - second
-      - publish
-      - raw
+      connection-type: mq
+      attributes:
+        - second
+        - publish
+        - raw
     - name: incoming_messages
-    connection-type: mq
-    attributes:
-      - first
-      - publish
-      - raw
+      connection-type: mq
+      attributes:
+        - first
+        - publish
+        - raw
   extended-settings:
     service: 
       enabled: false
