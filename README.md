@@ -126,7 +126,7 @@ spec:
         - raw
   extended-settings:
     service: 
-      enabled: true
+      enabled: false
     resources:
       limits:
         memory: 400Mi
