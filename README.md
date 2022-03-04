@@ -71,15 +71,14 @@ Here's an example of infra-mgr config required to deploy this service.
 apiVersion: th2.exactpro.com/v1
 kind: Th2Box
 metadata:
-  name: fix-client
+  name: conn-qfj
 spec:		
-  image-name: ghcr.io/th2-net/ghcr.io/th2-net/th2-conn-qfj-client
+  image-name: ghcr.io/th2-net/th2-conn-qfj
   image-version: 0.0.1
   custom-config:
     grpcStartControl: true
     autoStart: true
-    autoStopAfter: 300
-    queueCapacity: 10000 
+    autoStopAfter: 0
     fileStorePath: storage/messages/
     fileLogPath: outgoing
     connectionType: initiator
@@ -87,24 +86,25 @@ spec:
     heartBtInt: 30
     useDataDictionary: Y
     nonStopSession: Y
-    - sessionsSettings:
-      beginString: FIX.4.2
-      socketConnectHost: localhost
-      socketConnectPort: 9877
-      senderCompID: client
-      senderSubID: clientSubId
-      senderLocationID: clientLocationId
-      targetCompID: server
-      targetSubID: serverSubId
-      targetLocationID: serverLocationId
-      sessionAlias: client1
-    - sessionsSettings:
-      beginString: FIX.4.2
-      socketConnectHost: localhost
-      socketConnectPort: 9877
-      senderCompID: client2
-      targetCompID: server
-      sessionAlias: client2
+    sessionsSettings:
+      -  
+        beginString: FIXT.1.1
+        defaultApplVerID: 9
+        socketConnectHost: 10.119.1.45
+        socketConnectPort: 32104
+        senderCompID: client2
+        targetCompID: server
+        sessionAlias: client2
+        appDataDictionary: FIX.5.0.xml
+        transportDataDictionary: FIXT.1.1.xml
+      -
+        beginString: FIX.4.2 
+        socketConnectHost: 10.119.1.45
+        socketConnectPort: 32102
+        senderCompID: client1
+        targetCompID: server
+        sessionAlias: client1
+        dataDictionary: FIX.4.2.xml
   type: th2-conn
   pins:
     - name: to_send
@@ -130,8 +130,8 @@ spec:
       enabled: false
     resources:
       limits:
-        memory: 200Mi
-        cpu: 600m
+        memory: 400Mi
+        cpu: 800m
       requests:
         memory: 100Mi
         cpu: 20m
