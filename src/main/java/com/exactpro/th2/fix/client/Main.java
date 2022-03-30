@@ -4,9 +4,7 @@ import com.exactpro.th2.common.event.Event;
 import com.exactpro.th2.common.grpc.AnyMessage;
 import com.exactpro.th2.common.grpc.ConnectionID;
 import com.exactpro.th2.common.grpc.EventBatch;
-import com.exactpro.th2.common.grpc.EventID;
 import com.exactpro.th2.common.grpc.MessageGroupBatch;
-import com.exactpro.th2.common.grpc.RawMessage;
 import com.exactpro.th2.common.schema.factory.CommonFactory;
 import com.exactpro.th2.common.schema.grpc.router.GrpcRouter;
 import com.exactpro.th2.common.schema.message.MessageListener;
@@ -268,22 +266,17 @@ public class Main {
 
                         if (!session.send(fixMessage)) {
                             throw new IllegalStateException("Message not sent. Message was not queued for transmission to the counterparty");
+                        } else {
+                            MessageRouterUtils.storeEvent(eventRouter, MessageUtil.getSuccessfulEvent(message, "Message successfully sent"),
+                                    MessageUtil.getParentEventID(message, rootEventID));
                         }
                     }
                 } catch (Exception e) {
                     LOGGER.error("Failed to handle message group: {}", toJson(group), e);
 
-                    RawMessage rawMessage = group.getMessagesList().get(0).getRawMessage();
-                    EventID eventID = rawMessage.getParentEventId();
-                    String parentEventID = eventID.getId().isEmpty() ? rootEventID : eventID.getId();
-                    Event event = Event.start()
-                            .messageID(rawMessage
-                                    .getMetadata()
-                                    .getId())
-                            .type("Error")
-                            .status(Event.Status.FAILED)
-                            .name("Failed to handle message group");
-                    MessageRouterUtils.storeEvent(eventRouter, event, parentEventID);
+                    AnyMessage message = group.getMessagesList().get(0);
+                    MessageRouterUtils.storeEvent(eventRouter, MessageUtil.getErrorEvent(message, "Failed to handle message group"),
+                            MessageUtil.getParentEventID(message, rootEventID));
                 }
             });
         };

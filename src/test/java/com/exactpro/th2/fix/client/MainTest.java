@@ -3,6 +3,7 @@ package com.exactpro.th2.fix.client;
 import com.exactpro.th2.common.grpc.AnyMessage;
 import com.exactpro.th2.common.grpc.ConnectionID;
 import com.exactpro.th2.common.grpc.EventBatch;
+import com.exactpro.th2.common.grpc.EventID;
 import com.exactpro.th2.common.grpc.MessageGroup;
 import com.exactpro.th2.common.grpc.MessageGroupBatch;
 import com.exactpro.th2.common.grpc.MessageID;
@@ -50,11 +51,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.any;
 
 public class MainTest extends Main {
 
     private MessageListener<MessageGroupBatch> listener;
     private final List<MessageGroupBatch> messages = new ArrayList<>();
+    private final List<EventBatch> events = new ArrayList<>();
 
     @Test //for manual test
     public void runTest() throws Exception {
@@ -139,14 +143,19 @@ public class MainTest extends Main {
         Mockito.doAnswer(invocation -> {
             listener = (MessageListener<MessageGroupBatch> ) invocation.getArguments()[0];
             return (SubscriberMonitor) () -> {};
-        }).when(messageRouter).subscribe(Mockito.any(), Mockito.any());
+        }).when(messageRouter).subscribe(any(), any());
 
         Mockito.doAnswer(invocation -> {
             messages.add(invocation.getArgumentAt(0, MessageGroupBatch.class));
             return null;
-        }).when(messageRouter).send(Mockito.any(), Mockito.any());
+        }).when(messageRouter).send(any(), any());
 
         MessageRouter<EventBatch> eventRouter = Mockito.mock(MessageRouter.class);
+        Mockito.doAnswer(invocation -> {
+            events.add(invocation.getArgumentAt(0, EventBatch.class));
+            return null;
+        }).when(eventRouter).sendAll(any(), eq("publish"), eq("event"));
+
         GrpcRouter grpcRouter = Mockito.mock(GrpcRouter.class);
         ConcurrentLinkedDeque<Main.Resources> resources = new ConcurrentLinkedDeque<>();
 
@@ -226,6 +235,7 @@ public class MainTest extends Main {
                 .addGroups(MessageGroup.newBuilder()
                         .addMessages(AnyMessage.newBuilder()
                                 .setRawMessage(RawMessage.newBuilder()
+                                        .setParentEventId(EventID.newBuilder().setId("eventID123"))
                                         .setBody(ByteString
                                                 .copyFrom(fixMessage1
                                                         .toString()
@@ -292,5 +302,8 @@ public class MainTest extends Main {
         }
         System.out.println("count of orders: " + countOfOrders);
         Assert.assertEquals(countOfOrders, countOfResponses);
+
+//        System.out.println("events: ");
+//        events.forEach(System.out::println);
     }
 }

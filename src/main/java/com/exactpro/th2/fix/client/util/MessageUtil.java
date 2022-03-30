@@ -1,5 +1,6 @@
 package com.exactpro.th2.fix.client.util;
 
+import com.exactpro.th2.common.event.Event;
 import com.exactpro.th2.common.grpc.AnyMessage;
 import com.exactpro.th2.common.grpc.ConnectionID;
 import com.exactpro.th2.common.grpc.Direction;
@@ -41,5 +42,29 @@ public class MessageUtil {
 
     public static String getSessionAlias(AnyMessage message) {
         return message.getRawMessage().getMetadata().getId().getConnectionId().getSessionAlias();
+    }
+
+    public static String getParentEventID(AnyMessage message, String rootEventID){
+       return message.getRawMessage().getParentEventId().getId().isEmpty() ? rootEventID : message.getRawMessage().getParentEventId().getId();
+    }
+
+    public static Event getSuccessfulEvent(AnyMessage message, String name){
+        return getEvent(message, name, "info", Event.Status.PASSED);
+    }
+
+    public static Event getErrorEvent(AnyMessage message, String name){
+        return getEvent(message, name, "Error", Event.Status.FAILED);
+    }
+
+    private static Event getEvent(AnyMessage message, String name, String type, Event.Status status){
+        return Event
+                .start()
+                .messageID(message
+                        .getRawMessage()
+                        .getMetadata()
+                        .getId())
+                .type(type)
+                .name(name)
+                .status(status);
     }
 }
