@@ -59,7 +59,6 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 
 public class MainTest extends Main {
 
-    @Ignore
     @Test //for manual test
     public void runTest() throws Exception {
 
@@ -109,7 +108,10 @@ public class MainTest extends Main {
         fixBean.setSeqNumberFromRejectRegexp("Wrong sequence number!");
         fixBean.setSeqNumSender(2);
         fixBean.setSeqNumTarget(2);
-//        fixBean.setResetOnLogon("true");
+        fixBean.setHeartBtInt(30L);
+        fixBean.setFileLogPath("outgoing/");
+        fixBean.setFileStorePath("storage/messages/");
+        fixBean.setSocketConnectHost("localhost");
 
 
         FixBean fixBean1 = new FixBean();
@@ -130,6 +132,10 @@ public class MainTest extends Main {
         fixBean1.setPassword("1234");
         fixBean1.setNewPassword("123");
         fixBean1.setResetOnLogon("true");
+        fixBean.setHeartBtInt(30L);
+        fixBean.setFileLogPath("outgoing/");
+        fixBean.setFileStorePath("storage/messages/");
+        fixBean.setSocketConnectHost("localhost");
 
         List<FixBean> fixBeans = new ArrayList<>();
         fixBeans.add(fixBean);
@@ -263,7 +269,7 @@ public class MainTest extends Main {
         messageRouter.sendToSubscriber("client1", messageGroupBatch);
 //        messageRouter.sendToSubscriber("client2", messageGroupBatch2);
 
-        Thread.sleep(1000 * 60 * 3);
+        Thread.sleep(1000 * 6);
 
         String testString;
         int countOfOrders = 0;
