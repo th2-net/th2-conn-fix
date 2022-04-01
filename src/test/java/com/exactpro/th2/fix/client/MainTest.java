@@ -90,7 +90,7 @@ public class MainTest extends Main {
         fixBean.setBeginString("FIX.4.4");
         fixBean.setSenderCompID("client");
         fixBean.setTargetCompID("server");
-        fixBean.setSocketConnectPort(9877);
+        fixBean.setSocketConnectPort(9877L);
         fixBean.setSessionAlias("client1");
         fixBean.setDataDictionary(Path.of("src/test/java/resources/FIX44.xml"));
         fixBean.setOrderingFields("true");
@@ -98,7 +98,7 @@ public class MainTest extends Main {
         fixBean.setEndTime("21:15:00 Europe/Moscow");
         fixBean.setStartDay("monday");
         fixBean.setEndDay("sunday");
-        fixBean.setReconnectInterval(10);
+        fixBean.setReconnectInterval(10L);
         fixBean.setAutorelogin(true);
         fixBean.setResetOnLogon("false");
         fixBean.setUseDefaultApplVerID(true);
@@ -117,7 +117,7 @@ public class MainTest extends Main {
         fixBean1.setDefaultApplVerID("9");
         fixBean1.setSenderCompID("client2");
         fixBean1.setTargetCompID("server");
-        fixBean1.setSocketConnectPort(9877);
+        fixBean1.setSocketConnectPort(9877L);
         fixBean1.setSessionAlias("client2");
         fixBean1.setTransportDataDictionary(Path.of("src/test/java/resources/FIXT11.xml"));
         fixBean1.setAppDataDictionary(Path.of("src/test/java/resources/FIX50SP2.xml"));

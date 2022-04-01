@@ -9,6 +9,10 @@ import static com.exactpro.th2.fix.client.util.FixBeanUtil.addToConfig;
 import static com.exactpro.th2.fix.client.util.FixBeanUtil.requireNotNullOrBlank;
 import static com.exactpro.th2.fix.client.util.FixBeanUtil.convertFromBoolToYOrN;
 import static quickfix.Session.*;
+import static quickfix.SessionSettings.BEGINSTRING;
+import static quickfix.SessionSettings.TARGETCOMPID;
+import static quickfix.SessionSettings.TARGETLOCID;
+import static quickfix.SessionSettings.TARGETSUBID;
 import static quickfix.mina.ssl.SSLSupport.*;
 import static quickfix.FileLogFactory.*;
 import static quickfix.FileStoreFactory.*;
@@ -17,37 +21,37 @@ import static quickfix.Initiator.*;
 
 public class BaseFixBean {
 
-    protected String fileStorePath = "storage/messages/";
-    protected String fileLogPath = "outgoing";
+    protected String fileStorePath = null;
+    protected String fileLogPath = null;
     @JsonIgnore
     protected String connectionType = "initiator";
-    protected long reconnectInterval = 60;
-    protected long heartBtInt = 30;
+    protected Long reconnectInterval = null;
+    protected Long heartBtInt = null;
     @JsonIgnore
-    protected String useDataDictionary = "Y";
-    protected String validateUserDefinedFields = "N";
-    protected String validateIncomingMessage = "Y";
-    protected String refreshOnLogon = "N";
-    protected String nonStopSession = "N";
-    protected String resetOnLogon = "Y";
-    protected String resetOnLogout = "N";
-    protected String resetOnDisconnect = "N";
-    protected String logHeartBeats = "N";
-    protected String checkLatency = "N";
-    protected long maxLatency = 120;
-    protected String allowUnknownMsgFields = "N";
-    protected String rejectInvalidMessage = "Y";
-    protected String validateFieldsOutOfOrder = "N";
-    protected String validateFieldsHaveValues = "Y";
+    protected String useDataDictionary = null;
+    protected String validateUserDefinedFields = null;
+    protected String validateIncomingMessage = null;
+    protected String refreshOnLogon = null;
+    protected String nonStopSession = null;
+    protected String resetOnLogon = null;
+    protected String resetOnLogout = null;
+    protected String resetOnDisconnect = null;
+    protected String logHeartBeats = null;
+    protected String checkLatency = null;
+    protected Long maxLatency = null;
+    protected String allowUnknownMsgFields = null;
+    protected String rejectInvalidMessage = null;
+    protected String validateFieldsOutOfOrder = null;
+    protected String validateFieldsHaveValues = null;
     protected String socketUseSSL = null;
     protected String socketKeyStore = null;
     protected String socketKeyStorePassword = null;
     protected String enabledProtocols = null;
     protected String cipherSuites = null;
-    protected String validateSequenceNumbers = "Y";
-    protected long logonTimeout = 10;
-    protected long logoutTimeout = 10;
-    protected String requiresOrigSendingTime = "Y";
+    protected String validateSequenceNumbers = null;
+    protected Long logonTimeout = null;
+    protected Long logoutTimeout = null;
+    protected String requiresOrigSendingTime = null;
     protected String timeZone = null;
     protected String startTime = null;
     protected String endTime = null;
@@ -60,9 +64,17 @@ public class BaseFixBean {
     protected boolean autorelogin = true;
     protected boolean useDefaultApplVerID = true;
     protected String defaultCstmApplVerID = null;
-    protected String checkRequiredTags = "Y";
-    private String seqNumberFromRejectRegexp = null;
-    private String seqNumberFromLogoutRegexp = null;
+    protected String checkRequiredTags = null;
+    protected String seqNumberFromRejectRegexp = null;
+    protected String seqNumberFromLogoutRegexp = null;
+    protected String beginString = null;
+    protected String socketConnectHost = null;
+    protected Long socketConnectPort = null;
+    protected String targetCompID = null;
+    protected String targetSubID = null;
+    protected String targetLocationID = null;
+    protected String defaultApplVerID = null;
+    protected String encryptPassword = null;
 
     public BaseFixBean() {
     }
@@ -107,6 +119,13 @@ public class BaseFixBean {
         addToConfig(SETTING_TIMESTAMP_PRECISION, timeStampPrecision, stringBuilder);
         addToConfig(SETTING_ENABLE_NEXT_EXPECTED_MSG_SEQ_NUM, enableNextExpectedMsgSeqNum, stringBuilder);
         addToConfig(SETTING_CHECK_REQUIRED_TAGS, checkRequiredTags, stringBuilder);
+        addToConfig(BEGINSTRING, beginString, stringBuilder);
+        addToConfig(SETTING_SOCKET_CONNECT_HOST, socketConnectHost, stringBuilder);
+        addToConfig(SETTING_SOCKET_CONNECT_PORT, socketConnectPort, stringBuilder);
+        addToConfig(TARGETCOMPID, targetCompID, stringBuilder);
+        addToConfig(TARGETSUBID, targetSubID, stringBuilder);
+        addToConfig(TARGETLOCID, targetLocationID, stringBuilder);
+        addToConfig(SETTING_DEFAULT_APPL_VER_ID, defaultApplVerID, stringBuilder);
 
         return stringBuilder;
     }
@@ -118,6 +137,73 @@ public class BaseFixBean {
         return tagValue;
     }
 
+    public String getBeginString() {
+        return beginString;
+    }
+
+    public void setBeginString(String beginString) {
+        this.beginString = requireNotNullOrBlank(BEGINSTRING, beginString);
+    }
+
+    public String getSocketConnectHost() {
+        return socketConnectHost;
+    }
+
+    public void setSocketConnectHost(String socketConnectHost) {
+        this.socketConnectHost = requireNotNullOrBlank(SETTING_SOCKET_CONNECT_HOST, socketConnectHost);
+    }
+
+    public Long getSocketConnectPort() {
+        return socketConnectPort;
+    }
+
+    public void setSocketConnectPort(Long socketConnectPort) {
+        if (socketConnectPort < 1024 || socketConnectPort > 65535) {
+            throw new IllegalArgumentException("SocketConnectPort must be in range from 1024 to 65535.");
+        }
+        this.socketConnectPort = socketConnectPort;
+    }
+
+    public String getTargetCompID() {
+        return targetCompID;
+    }
+
+    public void setTargetCompID(String targetCompID) {
+        this.targetCompID = requireNotNullOrBlank(TARGETCOMPID, targetCompID);
+    }
+
+    public String getDefaultApplVerID() {
+        return defaultApplVerID;
+    }
+
+    public void setDefaultApplVerID(String defaultApplVerID) {
+        this.defaultApplVerID = requireNotNullOrBlank(SETTING_DEFAULT_APPL_VER_ID, defaultApplVerID);
+    }
+
+    public String getTargetSubID() {
+        return targetSubID;
+    }
+
+    public void setTargetSubID(String targetSubID) {
+        this.targetSubID = requireNotNullOrBlank(TARGETSUBID, targetSubID);
+    }
+
+    public String getTargetLocationID() {
+        return targetLocationID;
+    }
+
+    public void setTargetLocationID(String targetLocationID) {
+        this.targetLocationID = requireNotNullOrBlank(TARGETLOCID, targetLocationID);
+    }
+
+    public String getEncryptPassword() {
+        return encryptPassword;
+    }
+
+    public void setEncryptPassword(String encryptPassword) {
+        this.encryptPassword = convertFromBoolToYOrN("EncryptPassword", encryptPassword);
+    }
+
     public void setFileStorePath(String fileStorePath) {
         this.fileStorePath = requireNotNullOrBlank(SETTING_FILE_STORE_PATH, fileStorePath);
     }
@@ -126,15 +212,15 @@ public class BaseFixBean {
         this.fileLogPath = requireNotNullOrBlank(SETTING_FILE_LOG_PATH, fileLogPath);
     }
 
-    public void setReconnectInterval(long reconnectInterval) {
+    public void setReconnectInterval(Long reconnectInterval) {
         if (!autorelogin) {
-            this.reconnectInterval = 1_000_000_000;
+            this.reconnectInterval = 1_000_000_000L;
         } else {
             this.reconnectInterval = requirePositive(SETTING_RECONNECT_INTERVAL, reconnectInterval);
         }
     }
 
-    public void setHeartBtInt(long heartBtInt) {
+    public void setHeartBtInt(Long heartBtInt) {
         this.heartBtInt = requirePositive(SETTING_HEARTBTINT, heartBtInt);
     }
 
@@ -174,7 +260,7 @@ public class BaseFixBean {
         this.checkLatency = convertFromBoolToYOrN(SETTING_CHECK_LATENCY, checkLatency);
     }
 
-    public void setMaxLatency(long maxLatency) {
+    public void setMaxLatency(Long maxLatency) {
         this.maxLatency = requirePositive(SETTING_MAX_LATENCY, maxLatency);
     }
 
@@ -222,7 +308,7 @@ public class BaseFixBean {
     public void setAutorelogin(boolean autorelogin) {
         this.autorelogin = autorelogin;
         if (!autorelogin) {
-            this.reconnectInterval = 1_000_000_000;
+            this.reconnectInterval = 1_000_000_000L;
         }
     }
 
@@ -238,7 +324,7 @@ public class BaseFixBean {
         this.checkRequiredTags = convertFromBoolToYOrN("CheckRequiredTags", checkRequiredTags);
     }
 
-    public String isCheckRequiredTags() {
+    public String getCheckRequiredTags() {
         return checkRequiredTags;
     }
 
@@ -254,11 +340,11 @@ public class BaseFixBean {
         return fakeResendRequest;
     }
 
-    public void setLogonTimeout(long logonTimeout) {
+    public void setLogonTimeout(Long logonTimeout) {
         this.logonTimeout = requirePositive(SETTING_LOGON_TIMEOUT, logonTimeout);
     }
 
-    public void setLogoutTimeout(long logoutTimeout) {
+    public void setLogoutTimeout(Long logoutTimeout) {
         this.logoutTimeout = requirePositive(SETTING_LOGOUT_TIMEOUT, logoutTimeout);
     }
 
@@ -330,11 +416,11 @@ public class BaseFixBean {
         return endDay;
     }
 
-    public long getLogoutTimeout() {
+    public Long getLogoutTimeout() {
         return logoutTimeout;
     }
 
-    public long getLogonTimeout() {
+    public Long getLogonTimeout() {
         return logonTimeout;
     }
 
@@ -399,7 +485,7 @@ public class BaseFixBean {
         return allowUnknownMsgFields;
     }
 
-    public long getMaxLatency() {
+    public Long getMaxLatency() {
         return maxLatency;
     }
 
@@ -423,7 +509,7 @@ public class BaseFixBean {
         return resetOnLogon;
     }
 
-    public long getHeartBtInt() {
+    public Long getHeartBtInt() {
         return heartBtInt;
     }
 
@@ -485,7 +571,7 @@ public class BaseFixBean {
                 .append(SETTING_REFRESH_ON_LOGON, refreshOnLogon)
                 .append(SETTING_NON_STOP_SESSION, nonStopSession)
                 .append(SETTING_RESET_ON_LOGON, resetOnLogon)
-                .append(SETTING_RESET_ON_LOGOUT, resetOnLogon)
+                .append(SETTING_RESET_ON_LOGOUT, resetOnLogout)
                 .append(SETTING_RESET_ON_DISCONNECT, resetOnDisconnect)
                 .append(SETTING_LOG_HEARTBEATS, logHeartBeats)
                 .append(SETTING_CHECK_LATENCY, checkLatency)
@@ -510,6 +596,13 @@ public class BaseFixBean {
                 .append(SETTING_END_DAY, endDay)
                 .append(SETTING_TIMESTAMP_PRECISION, timeStampPrecision)
                 .append(SETTING_ENABLE_NEXT_EXPECTED_MSG_SEQ_NUM, enableNextExpectedMsgSeqNum)
+                .append(BEGINSTRING, beginString)
+                .append(SETTING_SOCKET_CONNECT_HOST, socketConnectHost)
+                .append(SETTING_SOCKET_CONNECT_PORT, socketConnectPort)
+                .append(TARGETCOMPID, targetCompID)
+                .append(TARGETSUBID, targetSubID)
+                .append(TARGETLOCID, targetLocationID)
+                .append(SETTING_DEFAULT_APPL_VER_ID, defaultApplVerID)
                 .append("FakeResendRequest", fakeResendRequest)
                 .append("OrderingFields", orderingFields)
                 .append("Autorelogine", autorelogin)
@@ -518,6 +611,7 @@ public class BaseFixBean {
                 .append("CheckRequiredTags", checkRequiredTags)
                 .append("SeqNumberFromRejectRegexp", seqNumberFromRejectRegexp)
                 .append("SeqNumberFromLogoutRegexp", seqNumberFromLogoutRegexp)
+                .append("EncryptPassword", encryptPassword)
                 .toString();
     }
 }
