@@ -115,27 +115,36 @@ public class Main {
         Settings settings = factory.getCustomConfiguration(Settings.class, mapper);
         Path temporaryDirectory = Files.createTempDirectory("conn-qfj-dictionaries");
 
-        try (InputStream rawBase64 = factory.readDictionary();
-             ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(Base64
-                     .getDecoder()
-                     .decode(rawBase64.readAllBytes()));
-             ZipInputStream zipInputStream = new ZipInputStream(byteArrayInputStream)) {
-            ZipEntry zipEntry = null;
-            try {
-                while ((zipEntry = zipInputStream.getNextEntry()) != null) {
-                    Path filePath = Path.of(zipEntry.getName());
-                    if (!filePath.toString().endsWith(".xml")) {
-                        throw new IncorrectFixFileNameException("Incorrect FIX dictionary file name: " + filePath.getFileName());
+        if (settings.isZipDictionaries()) {
+            try (InputStream rawBase64 = factory.readDictionary();
+                 ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(Base64
+                         .getDecoder()
+                         .decode(rawBase64.readAllBytes()));
+                 ZipInputStream zipInputStream = new ZipInputStream(byteArrayInputStream)) {
+                ZipEntry zipEntry = null;
+                try {
+                    while ((zipEntry = zipInputStream.getNextEntry()) != null) {
+                        Path filePath = Path.of(zipEntry.getName());
+                        if (!filePath.toString().endsWith(".xml")) {
+                            throw new IncorrectFixFileNameException("Incorrect FIX dictionary file name: " + filePath.getFileName());
+                        }
+                        writeDictionary(temporaryDirectory, zipInputStream, filePath);
                     }
-                    Path pathToDictionary = Files.createFile(getPathToDictionary(temporaryDirectory, filePath));
-                    Files.write(pathToDictionary, zipInputStream.readAllBytes());
-                    new DataDictionary(pathToDictionary.toString()); //check that xml file contains the correct values
+                } catch (IncorrectFixFileNameException e) {
+                    throw new Exception("Failed to unzip dictionaries along the path: " + zipEntry.getName(), e);
                 }
-            } catch (IncorrectFixFileNameException | ConfigError e) {
-                throw new Exception("Failed to unzip dictionaries along the path: " + zipEntry.getName(), e);
+            } catch (Exception e) {
+                throw new Exception("Failed to create DataDictionary", e);
             }
-        } catch (IOException e) {
-            throw new Exception("Failed to create DataDictionary", e);
+        } else {
+            try {
+                for (String dictionaryAlias : factory.getDictionaryAliases()) {
+                    InputStream dictionary = factory.loadDictionary(dictionaryAlias);
+                    writeDictionary(temporaryDirectory, dictionary, Path.of(dictionaryAlias));
+                }
+            } catch (Exception e) {
+                throw new Exception("Failed to create DataDictionary", e);
+            }
         }
 
         for (FixBean sessionSetting : settings.sessionSettings) {
@@ -152,9 +161,7 @@ public class Main {
                 sessionSetting.setAppDataDictionary(requireFileExist(pathToAppDataDictionary));
             } else {
                 Path dataDictionary = Objects.requireNonNull(sessionSetting.getDataDictionary(), () -> "DataDictionary is null for session: " + sessionID);
-
                 Path pathToDataDictionary = getPathToDictionary(temporaryDirectory, requireNotAbsolute(dataDictionary));
-
                 sessionSetting.setDataDictionary(requireFileExist(pathToDataDictionary));
             }
         }
@@ -173,6 +180,16 @@ public class Main {
             System.exit(1);
         }
 
+    }
+
+    private static void writeDictionary(Path directory, InputStream dictionary, Path fileName) throws IOException, ConfigError {
+        Path pathToDictionary = Files.createFile(getPathToDictionary(directory, fileName));
+        Files.write(pathToDictionary, dictionary.readAllBytes());
+        try {
+            new DataDictionary(pathToDictionary.toString()); //check that xml file contains the correct values
+        } catch (ConfigError error) {
+            throw new ConfigError("Failed to create DataDictionary along the path " + fileName.getFileName(), error);
+        }
     }
 
     private static Path requireNotAbsolute(Path path) {
@@ -328,6 +345,7 @@ public class Main {
         boolean autoStart = true;
         int autoStopAfter = 0;
         int queueCapacity = 10000;
+        boolean zipDictionaries = false;
         @JsonProperty(required = true)
         List<FixBean> sessionSettings = new ArrayList<>();
         @JsonIgnore
@@ -395,6 +413,14 @@ public class Main {
             return queueCapacity;
         }
 
+        public boolean isZipDictionaries() {
+            return zipDictionaries;
+        }
+
+        public void setZipDictionaries(boolean zipDictionaries) {
+            this.zipDictionaries = zipDictionaries;
+        }
+
         @Override
         public String toString() {
 
@@ -405,6 +431,7 @@ public class Main {
                     .append("autoStopAfter", autoStopAfter)
                     .append("sessionsSettings", sessionSettings)
                     .append("sessionIDsByAliases", sessionIDsByAliases)
+                    .append("zipDictionaries", zipDictionaries)
                     .toString();
         }
     }
