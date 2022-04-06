@@ -41,8 +41,9 @@
      | DisconnectOnError	| Session setting for doing an automatic disconnect when an error occurs.	| Y / N	| N |    
      | SessionAlias| session alias for incoming/outgoing th2 messages. | case-sensitive alpha-numeric string | |
      | QueueCapacity | maximum size of the session message queue | integer value | |
-     
-     
+     | zipDictionaries | Defines the way dictionaries are loaded. preferred setting is false for downloading by aliases, true for downloading dictionaries from a zip archive  | true / false | false |
+
+
 We can also put these settings in the root directory to set the default session settings.
 		
 
