@@ -140,7 +140,8 @@ public class Main {
 
         for (FixBean sessionSetting : settings.sessionSettings) {
             SessionID sessionID = FixBeanUtil.getSessionID(sessionSetting);
-            if (sessionSetting.getBeginString().equals("FIXT.1.1")) {
+            String beginString = sessionSetting.getBeginString() == null ? settings.getBeginString() : sessionSetting.getBeginString();
+            if (beginString.equals("FIXT.1.1")) {
 
                 Path transportDataDictionary = Objects.requireNonNull(sessionSetting.getTransportDataDictionary(), () -> "TransportDataDictionary is null for session: " + sessionID);
                 Path appDataDictionary = Objects.requireNonNull(sessionSetting.getAppDataDictionary(), () -> "AppDataDictionary is null for session: " + sessionID);
@@ -246,25 +247,30 @@ public class Main {
                         FixBean sessionSettings = FixBeanUtil.getSessionSettingsBySessionAlias(settings.getSessionSettings(), sessionAlias);
                         Objects.requireNonNull(sessionSettings, "Unknown session alias + " + sessionAlias);
 
+                        DataDictionary dataDictionary;
+                        DataDictionary sessionDataDictionary;
+                        if (sessionID.isFIXT()) {
+                            dataDictionary = session
+                                    .getDataDictionaryProvider()
+                                    .getApplicationDataDictionary(session.getSenderDefaultApplicationVersionID());
+                            sessionDataDictionary = session
+                                    .getDataDictionaryProvider()
+                                    .getSessionDataDictionary(sessionID.getBeginString());
+                        } else {
+                            dataDictionary = session.getDataDictionary();
+                            sessionDataDictionary = dataDictionary;
+                        }
+
                         Message fixMessage;
                         if (sessionSettings.getOrderingFields() != null && sessionSettings.getOrderingFields().equals(YES_SETTING)) {
 
-                            DataDictionary dataDictionary;
-                            if (sessionID.isFIXT()) {
-                                dataDictionary = session
-                                        .getDataDictionaryProvider()
-                                        .getApplicationDataDictionary(session.getSenderDefaultApplicationVersionID());
-                            } else {
-                                dataDictionary = session.getDataDictionary();
-                            }
-
                             FixMessageFactory messageFactory = (FixMessageFactory) session.getMessageFactory();
-
                             fixMessage = messageFactory.create(sessionID.getBeginString(), MessageUtils.getMessageType(strMessage), dataDictionary.getOrderedFields());
-                            fixMessage.fromString(strMessage, dataDictionary, true);
+                            fixMessage.fromString(strMessage, sessionDataDictionary, dataDictionary, true);
                         } else {
                             fixMessage = MessageUtils.parse(session, strMessage);
                         }
+                        dataDictionary.validate(fixMessage, true);
 
                         if (!session.send(fixMessage)) {
                             LOGGER.error("Message not sent. Message was not queued for transmission to the counterparty");
@@ -318,9 +324,7 @@ public class Main {
         } catch (InterruptedException e) {
             LOGGER.error("Cannot get lock for Fix Client", e);
         }
-
         LOGGER.info("Finished running");
-
     }
 
     public static class Settings extends BaseFixBean {
