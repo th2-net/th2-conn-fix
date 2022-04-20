@@ -137,13 +137,13 @@ public class Main {
                 throw new Exception("Failed to create DataDictionary", e);
             }
         } else {
-            try {
-                for (String dictionaryAlias : factory.getDictionaryAliases()) {
+            for (String dictionaryAlias : factory.getDictionaryAliases()) {
+                try {
                     InputStream dictionary = factory.loadDictionary(dictionaryAlias);
                     writeDictionary(temporaryDirectory, dictionary, Path.of(dictionaryAlias));
+                } catch (Exception e) {
+                    throw new Exception("Failed to create DataDictionary by alias: " + dictionaryAlias, e);
                 }
-            } catch (Exception e) {
-                throw new Exception("Failed to create DataDictionary", e);
             }
         }
 
