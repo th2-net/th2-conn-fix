@@ -162,7 +162,7 @@ public class Main {
         GrpcRouter grpcRouter = factory.getGrpcRouter();
 
         try {
-            run(settings, messageRouter, eventRouter, grpcRouter, resources);
+            run(settings, messageRouter, eventRouter, grpcRouter, resources, factory.getBoxConfiguration().getBoxName());
         } catch (IncorrectDataFormat | CreatingConfigFileException e) {
             LOGGER.error("Error when using the config file", e);
             System.exit(1);
@@ -192,7 +192,7 @@ public class Main {
     }
 
     public static void run(Settings settings, MessageRouter<MessageGroupBatch> messageRouter, MessageRouter<EventBatch> eventRouter,
-                           GrpcRouter grpcRouter, Deque<Resources> resources) throws CreatingConfigFileException, ConfigError, IncorrectDataFormat {
+                           GrpcRouter grpcRouter, Deque<Resources> resources, String boxName) throws CreatingConfigFileException, ConfigError, IncorrectDataFormat {
 
         File configFile = FixBeanUtil.createConfig(settings);
 
@@ -203,10 +203,11 @@ public class Main {
             connectionIDs.put(sessionId, ConnectionID.newBuilder().setSessionAlias(sessionAlias).build());
         });
 
-        String eventName = "FIX client " + String.join(":", sessionIDs.keySet()) + " " + Instant.now();
         Event rootEvent = MessageRouterUtils.storeEvent(eventRouter, Event.start()
-                        .name(eventName)
+                        .description("Root event")
+                        .name(boxName + " " + Instant.now())
                         .type("Microservice")
+                        .bodyData(FixBeanUtil.getSessionTable(settings.getSessionSettings()))
                 , null);
         String rootEventID = rootEvent.getId();
 

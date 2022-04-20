@@ -161,7 +161,7 @@ public class MainTest extends Main {
 
         Thread thread = new Thread(() -> {
             try {
-                Main.run(settings, messageRouter, eventRouter, grpcRouter, resources);
+                Main.run(settings, messageRouter, eventRouter, grpcRouter, resources, "conn-qfj");
             } catch (ConfigError | CreatingConfigFileException | IncorrectDataFormat configError) {
                 configError.printStackTrace();
             }

@@ -247,6 +247,10 @@ public class FixBean extends BaseFixBean {
         return username;
     }
 
+    public String getRawUsername() {
+        return username.substring(4);
+    }
+
     public String getPassword() {
         return password;
     }

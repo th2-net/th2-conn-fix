@@ -1,5 +1,8 @@
 package com.exactpro.th2.fix.client.util;
 
+import com.exactpro.th2.common.event.bean.IRow;
+import com.exactpro.th2.common.event.bean.Table;
+import com.exactpro.th2.common.event.bean.builder.TableBuilder;
 import com.exactpro.th2.fix.client.Main.Settings;
 import com.exactpro.th2.fix.client.exceptions.CreatingConfigFileException;
 import com.exactpro.th2.fix.client.fixBean.FixBean;
@@ -58,25 +61,91 @@ public class FixBeanUtil {
         return tagValue;
     }
 
-    public static String convertFromBoolToYOrN(String tagName, String tagValue){
+    public static String convertFromBoolToYOrN(String tagName, String tagValue) {
 
-        if (tagValue.equals("true")){
+        if (tagValue.equals("true")) {
             tagValue = "Y";
             return tagValue;
-        }else if (tagValue.equals("false")){
+        } else if (tagValue.equals("false")) {
             tagValue = "N";
             return tagValue;
-        }else {
+        } else {
             throw new IllegalArgumentException(tagName + " must be \"true\" or \"false\".");
         }
     }
 
     public static FixBean getSessionSettingsBySessionAlias(List<FixBean> sessionSettings, String sessionAlias) {
-        for (FixBean fixBean: sessionSettings){
-            if (sessionAlias.equals(fixBean.getSessionAlias())){
+        for (FixBean fixBean : sessionSettings) {
+            if (sessionAlias.equals(fixBean.getSessionAlias())) {
                 return fixBean;
             }
         }
         return null;
+    }
+
+    public static Table getSessionTable(List<FixBean> sessionSettings) {
+
+        TableBuilder<Row> tableBuilder = new TableBuilder<>();
+
+        tableBuilder.row(new Row("sessionAlias", "senderCompID", "targetCompID",
+                "socketConnectHost", "socketConnectPort", "username", "dataDictionary"));
+
+        String dataDictionary;
+        for (FixBean settings : sessionSettings) {
+            dataDictionary = settings.getDataDictionary() != null ? settings.getDataDictionary().getFileName().toString()
+                    : (settings.getAppDataDictionary().getFileName().toString() + settings.getTransportDataDictionary().getFileName());
+
+            tableBuilder.row(new Row(settings.getSessionAlias(), settings.getSenderCompID(), settings.getTargetCompID(),
+                    settings.getSocketConnectHost(), Long.toString(settings.getSocketConnectPort()), settings.getRawUsername(), dataDictionary));
+        }
+        return tableBuilder.build();
+    }
+
+    private static class Row implements IRow{
+        String alias;
+        String senderCompID;
+        String targetCompID;
+        String socketConnectHost;
+        String socketConnectPort;
+        String username;
+        String dataDictionary;
+
+        public Row(String alias, String senderCompID, String targetCompID, String socketConnectHost, String socketConnectPort, String username, String dataDictionary) {
+            this.alias = alias;
+            this.senderCompID = senderCompID;
+            this.targetCompID = targetCompID;
+            this.socketConnectHost = socketConnectHost;
+            this.socketConnectPort = socketConnectPort;
+            this.username = username;
+            this.dataDictionary = dataDictionary;
+        }
+
+        public String getAlias() {
+            return alias;
+        }
+
+        public String getSenderCompID() {
+            return senderCompID;
+        }
+
+        public String getTargetCompID() {
+            return targetCompID;
+        }
+
+        public String getSocketConnectHost() {
+            return socketConnectHost;
+        }
+
+        public String getSocketConnectPort() {
+            return socketConnectPort;
+        }
+
+        public String getUsername() {
+            return username;
+        }
+
+        public String getDataDictionary() {
+            return dataDictionary;
+        }
     }
 }
