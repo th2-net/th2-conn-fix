@@ -88,7 +88,7 @@ public class MainTest extends Main {
         fixBean.setBeginString("FIX.4.4");
         fixBean.setSenderCompID("client");
         fixBean.setTargetCompID("server");
-        fixBean.setSocketConnectPort(9877);
+        fixBean.setSocketConnectPort(9877L);
         fixBean.setSessionAlias("client1");
         fixBean.setDataDictionary(Path.of("src/test/java/resources/FIX44.xml"));
         fixBean.setOrderingFields("true");
@@ -96,7 +96,7 @@ public class MainTest extends Main {
         fixBean.setEndTime("21:15:00 Europe/Moscow");
         fixBean.setStartDay("monday");
         fixBean.setEndDay("sunday");
-        fixBean.setReconnectInterval(10);
+        fixBean.setReconnectInterval(10L);
         fixBean.setAutorelogin(true);
         fixBean.setResetOnLogon("false");
         fixBean.setUseDefaultApplVerID(true);
@@ -104,21 +104,24 @@ public class MainTest extends Main {
         fixBean.setPassword("123");
 //        fixBean.setNewPassword("123");
         fixBean.setCheckRequiredTags("true");
-//        fixBean.setSeqNumberFromRejectRegexp("Wrong sequence number!");
-//        fixBean.setSeqNumSender(2);
-//        fixBean.setSeqNumTarget(2);
-//        fixBean.setResetOnLogon("true");
         fixBean.setEncryptPassword("false");
         fixBean.setDuplicateTagsAllowed("true");
         fixBean.setIgnoreAbsenceOf141tag("true");
         fixBean.setValidateFieldsOutOfRange("true");
+        fixBean.setSeqNumberFromRejectRegexp("Wrong sequence number!");
+        fixBean.setSeqNumSender(2);
+        fixBean.setSeqNumTarget(2);
+        fixBean.setHeartBtInt(30L);
+        fixBean.setFileLogPath("outgoing/");
+        fixBean.setFileStorePath("storage/messages/");
+        fixBean.setSocketConnectHost("localhost");
 
         FixBean fixBean1 = new FixBean();
         fixBean1.setBeginString("FIXT.1.1");
         fixBean1.setDefaultApplVerID("9");
         fixBean1.setSenderCompID("client2");
         fixBean1.setTargetCompID("server");
-        fixBean1.setSocketConnectPort(9877);
+        fixBean1.setSocketConnectPort(9877L);
         fixBean1.setSessionAlias("client2");
         fixBean1.setTransportDataDictionary(Path.of("src/test/java/resources/FIXT11.xml"));
         fixBean1.setAppDataDictionary(Path.of("src/test/java/resources/FIX50SP2.xml"));
@@ -131,6 +134,10 @@ public class MainTest extends Main {
         fixBean1.setPassword("1234");
         fixBean1.setNewPassword("123");
         fixBean1.setResetOnLogon("true");
+        fixBean1.setHeartBtInt(30L);
+        fixBean1.setFileLogPath("outgoing/");
+        fixBean1.setFileStorePath("storage/messages/");
+        fixBean1.setSocketConnectHost("localhost");
 
         List<FixBean> fixBeans = new ArrayList<>();
         fixBeans.add(fixBean);
