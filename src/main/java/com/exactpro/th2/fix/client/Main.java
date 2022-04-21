@@ -140,7 +140,7 @@ public class Main {
 
         for (FixBean sessionSetting : settings.sessionSettings) {
             SessionID sessionID = FixBeanUtil.getSessionID(sessionSetting);
-            String beginString = sessionSetting.getBeginString() == null ? settings.getBeginString() : sessionSetting.getBeginString();
+            String beginString = Objects.requireNonNullElse(sessionSetting.getBeginString(), settings.getBeginString());
             if (beginString.equals("FIXT.1.1")) {
 
                 Path transportDataDictionary = Objects.requireNonNull(sessionSetting.getTransportDataDictionary(), () -> "TransportDataDictionary is null for session: " + sessionID);

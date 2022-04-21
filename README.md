@@ -55,7 +55,7 @@
      | OrderingFields | It enables fields ordering in the raw message by dictionary (when changing fields numbers) | true / false | |
      | FakeResendRequest | Response to ResendRequest(2) by heartbeats | true / false | false |
      | EnableNextExpectedMsgSeqNum | Add tag NextExpectedMsgSeqNum (optional tag 789) on the sent Logon message and use value of tag 789 on received Logon message to synchronize session. This should not be enabled for FIX versions < 4.4. Only works when ValidateSequenceNumbers is enabled. | true / false | false |
-     | TimeZone | Time zone for this session; if specified, the session start and end will be converted from this zone to UTC. | Time zone ID (America/New_York, Asia/To kyo, Europe/London, etc.) ||
+     | TimeZone | Time zone for this session; if specified, the session start and end will be converted from this zone to UTC. | Time zone ID (America/New_York, Asia/Tokyo, Europe/London, etc.) ||
      | StartDay | For week long sessions, the starting day of week for the session. Use in combination with StartTime. Incompatible with Weekdays | Day of week in the default locale (e.g. Monday, mon, lundi, lun. etc.) ||
      | EndDay | For week long sessions, the ending day of week for the session. Use in combination with EndTime. Incompatible with Weekdays | Day of week in the default locale (e.g. Monday, mon, lundi, lun. etc.) ||
      | StartTime | Time of day that this FIX session becomes activated | time in the format of HH:MM:SS [timezone]. The time zone is optional. The TimeZone setting will be used, if set, or UTC will be used by default. The timezone string should be one that the Java TimeZone class can resolve. For example, "15:00:00 US/Central". ||
