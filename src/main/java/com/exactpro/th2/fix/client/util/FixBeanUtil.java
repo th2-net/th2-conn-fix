@@ -93,15 +93,20 @@ public class FixBeanUtil {
         String dataDictionary;
         for (FixBean settings : sessionSettings) {
             dataDictionary = settings.getDataDictionary() != null ? settings.getDataDictionary().getFileName().toString()
-                    : (settings.getAppDataDictionary().getFileName().toString() + settings.getTransportDataDictionary().getFileName());
+                    : (settings.getAppDataDictionary().getFileName().toString() + ", " + settings.getTransportDataDictionary().getFileName());
 
-            tableBuilder.row(new Row(settings.getSessionAlias(), settings.getSenderCompID(), settings.getTargetCompID(),
-                    settings.getSocketConnectHost(), Long.toString(settings.getSocketConnectPort()), settings.getRawUsername(), dataDictionary));
+            tableBuilder.row(new Row(settings.getSessionAlias(),
+                    settings.getSenderCompID(),
+                    settings.getTargetCompID(),
+                    settings.getSocketConnectHost(),
+                    Long.toString(settings.getSocketConnectPort()),
+                    settings.getRawUsername(),
+                    dataDictionary));
         }
         return tableBuilder.build();
     }
 
-    private static class Row implements IRow{
+    private static class Row implements IRow {
         String alias;
         String senderCompID;
         String targetCompID;

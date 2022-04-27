@@ -211,6 +211,11 @@ public class Main {
                 , null);
         String rootEventID = rootEvent.getId();
 
+        Event errorEventsRoot = MessageRouterUtils.storeEvent(eventRouter, Event.start()
+                        .name(boxName + " Error events " + Instant.now())
+                        .type("Root error")
+                , rootEventID);
+
         FixClient fixClient = new FixClient(new SessionSettings(configFile.getAbsolutePath()), settings,
                 messageRouter, eventRouter, connectionIDs, rootEventID, settings.queueCapacity);
 
@@ -218,18 +223,20 @@ public class Main {
         resources.add(new Resources("client", fixClient::stop));
 
         ClientController controller = new ClientController(fixClient);
+        resources.add(new Resources("client-controller", controller::stop));
 
         MessageListener<MessageGroupBatch> listener = (consumerTag, groupBatch) -> {
             if (!controller.isRunning()) controller.start(settings.autoStopAfter);
 
             groupBatch.getGroupsList().forEach((group) -> {
+                AnyMessage message = null;
                 try {
                     if (group.getMessagesCount() != 1) {
                         if (LOGGER.isErrorEnabled()) {
                             LOGGER.error("Message group contains more or less than 1 message {} ", toJson(group));
                         }
                     } else {
-                        AnyMessage message = group.getMessagesList().get(0);
+                        message = group.getMessagesList().get(0);
                         if (!message.hasRawMessage()) {
                             if (LOGGER.isErrorEnabled()) {
                                 LOGGER.error("Message in the group is not a raw message {} ", toJson(message));
@@ -268,16 +275,15 @@ public class Main {
                         if (!session.send(fixMessage)) {
                             throw new IllegalStateException("Message not sent. Message was not queued for transmission to the counterparty");
                         } else {
-                            MessageRouterUtils.storeEvent(eventRouter, MessageUtil.getSuccessfulEvent(message, "Message successfully sent"),
+                            MessageRouterUtils.storeEvent(eventRouter, MessageUtil.getEvent(message, "Message successfully sent"),
                                     MessageUtil.getParentEventID(message, rootEventID));
                         }
                     }
                 } catch (Exception e) {
                     LOGGER.error("Failed to handle message group: {}", toJson(group), e);
 
-                    AnyMessage message = group.getMessagesList().get(0);
-                    MessageRouterUtils.storeEvent(eventRouter, MessageUtil.getErrorEvent(message, "Failed to handle message group"),
-                            MessageUtil.getParentEventID(message, rootEventID));
+                    MessageRouterUtils.storeEvent(eventRouter, MessageUtil.getEvent(message, "Failed to handle message group", e),
+                            MessageUtil.getParentEventID(message, errorEventsRoot.getId()));
                 }
             });
         };

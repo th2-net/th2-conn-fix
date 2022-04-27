@@ -63,27 +63,6 @@ public class MainTest extends Main {
     @Test //for manual test
     public void runTest() throws Exception {
 
-//newOrderSingle
-//        Message fixMessage = new Message();
-//        Message.Header header = fixMessage.getHeader();
-//        header.setField(new BeginString("FIX.4.2"));
-//        header.setField(new MsgType("D"));
-//        header.setField(new SenderCompID("client"));
-//        header.setField(new TargetCompID("server"));
-//        header.setField(new SenderSubID("sendSubId"));
-//        header.setField(new TargetSubID("tarSubId"));
-
-//
-//        quickfix.fix42.NewOrderSingle fixMessage2 = new quickfix.fix42.NewOrderSingle(
-//                new ClOrdID("ClOrdID"),
-//                new HandlInst('3'),
-//                new Symbol("Symbol"),
-//                new Side('1'),
-//                new TransactTime(LocalDateTime.now()),
-//                new OrdType('1'));
-//        fixMessage2.setField(new SenderCompID("client2"));
-//        fixMessage2.setField(new TargetCompID("server"));
-
         Main.Settings settings = new Settings();
 
         FixBean fixBean = new FixBean();

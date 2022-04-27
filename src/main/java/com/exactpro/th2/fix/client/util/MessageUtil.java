@@ -10,16 +10,15 @@ import com.exactpro.th2.common.grpc.MessageID;
 import com.exactpro.th2.common.grpc.RawMessage;
 import com.exactpro.th2.common.grpc.RawMessageMetadata;
 import com.exactpro.th2.common.message.MessageUtils;
-import com.google.protobuf.ByteString;
+import com.google.protobuf.UnsafeByteOperations;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 
 public class MessageUtil {
 
     public static MessageGroupBatch toBatch(byte[] byteArray, ConnectionID connectionID, Direction direction, long sequence) {
         RawMessage.Builder rawMessage = RawMessage.newBuilder();
-        rawMessage.setBody(ByteString.copyFrom(byteArray));
+        rawMessage.setBody(UnsafeByteOperations.unsafeWrap(byteArray));
 
         RawMessageMetadata.Builder rawMessageMetadata = rawMessage.getMetadataBuilder();
         rawMessageMetadata.setTimestamp(MessageUtils.toTimestamp(Instant.now()));
@@ -37,34 +36,42 @@ public class MessageUtil {
     }
 
     public static String rawToString(AnyMessage message) {
-        return new String(message.getRawMessage().getBody().toByteArray(), StandardCharsets.UTF_8);
+        return message.getRawMessage().getBody().toStringUtf8();
     }
 
     public static String getSessionAlias(AnyMessage message) {
         return message.getRawMessage().getMetadata().getId().getConnectionId().getSessionAlias();
     }
 
-    public static String getParentEventID(AnyMessage message, String rootEventID){
-       return message.getRawMessage().getParentEventId().getId().isEmpty() ? rootEventID : message.getRawMessage().getParentEventId().getId();
+    public static String getParentEventID(AnyMessage message, String defaultParentEventID) {
+        if (message == null) {
+            return defaultParentEventID;
+        }
+        return message.getRawMessage().getParentEventId().getId().isEmpty() ? defaultParentEventID : message.getRawMessage().getParentEventId().getId();
     }
 
-    public static Event getSuccessfulEvent(AnyMessage message, String name){
-        return getEvent(message, name, "info", Event.Status.PASSED);
+    public static Event getEvent(AnyMessage message, String name) {
+        return getEvent(message, name, null);
     }
 
-    public static Event getErrorEvent(AnyMessage message, String name){
-        return getEvent(message, name, "Error", Event.Status.FAILED);
-    }
+    public static Event getEvent(AnyMessage message, String name, Throwable throwable) {
 
-    private static Event getEvent(AnyMessage message, String name, String type, Event.Status status){
-        return Event
-                .start()
-                .messageID(message
-                        .getRawMessage()
-                        .getMetadata()
-                        .getId())
-                .type(type)
-                .name(name)
-                .status(status);
+        Event event = Event.start()
+                .endTimestamp()
+                .name(name);
+
+        if (message != null) {
+            event.messageID(message.getRawMessage().getMetadata().getId());
+        }
+
+        if (throwable != null) {
+            event.exception(throwable, true)
+                    .type("Error")
+                    .status(Event.Status.FAILED);
+        } else {
+            event.type("Info")
+                    .status(Event.Status.PASSED);
+        }
+        return event;
     }
 }

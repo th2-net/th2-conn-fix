@@ -248,7 +248,7 @@ public class FixBean extends BaseFixBean {
     }
 
     public String getRawUsername() {
-        return username.substring(4);
+        return username.substring(4); //original one is 553=username format
     }
 
     public String getPassword() {
