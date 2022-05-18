@@ -63,8 +63,9 @@
      | TimeStampPrecision | Determines precision for timestamps in (Orig)SendingTime fields. Only available for FIX.4.2 and greater. NB: This configuration is only considered for messages that are sent out. QuickFIX/J is able to receive UtcTimestamp fields with up to picosecond precision. Please note however that only up to nanosecond precision will be stored, i.e. the picoseconds will be truncated.| One of: SECONDS, MILLIS, MICROS, NANOS | MILLIS |
      | SessionAlias| session alias for incoming/outgoing th2 messages. | case-sensitive alpha-numeric string | |
      | QueueCapacity | maximum size of the session message queue | integer value | |
-    
-	
+     | zipDictionaries | Defines the way dictionaries are loaded. preferred setting is false for downloading by aliases, true for downloading dictionaries from a zip archive  | true / false | false |
+
+
 We can also put these settings in the root directory to set the default session settings.
 		
 
