@@ -23,6 +23,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
+import org.apache.commons.lang3.concurrent.ConcurrentException;
+import org.apache.commons.lang3.concurrent.LazyInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import quickfix.ConfigError;
@@ -211,10 +213,15 @@ public class Main {
                 , null);
         String rootEventID = rootEvent.getId();
 
-        Event errorEventsRoot = MessageRouterUtils.storeEvent(eventRouter, Event.start()
-                        .name(boxName + " Error events " + Instant.now())
-                        .type("Root error")
-                , rootEventID);
+        LazyInitializer<Event> errorEventInitializer = new LazyInitializer<>() {
+            @Override
+            protected Event initialize() {
+                return MessageRouterUtils.storeEvent(eventRouter, Event.start()
+                                .name(boxName + " Error events " + Instant.now())
+                                .type("Root error"),
+                        rootEventID);
+            }
+        };
 
         FixClient fixClient = new FixClient(new SessionSettings(configFile.getAbsolutePath()), settings,
                 messageRouter, eventRouter, connectionIDs, rootEventID, settings.queueCapacity);
@@ -282,8 +289,12 @@ public class Main {
                 } catch (Exception e) {
                     LOGGER.error("Failed to handle message group: {}", toJson(group), e);
 
-                    MessageRouterUtils.storeEvent(eventRouter, MessageUtil.getEvent(message, "Failed to handle message group", e),
-                            MessageUtil.getParentEventID(message, errorEventsRoot.getId()));
+                    try {
+                        MessageRouterUtils.storeEvent(eventRouter, MessageUtil.getEvent(message, "Failed to handle message group", e),
+                                MessageUtil.getParentEventID(message, errorEventInitializer.get().getId()));
+                    } catch (ConcurrentException ex) {
+                        LOGGER.error("Failed to get root error event id", ex);
+                    }
                 }
             });
         };

@@ -31,6 +31,11 @@ import static quickfix.mina.ssl.SSLSupport.SETTING_USE_SSL;
 
 public class FixBean extends BaseFixBean {
 
+    private static final String LOGON_TAG_USERNAME = "553=";
+    private static final String LOGON_TAG_PASSWORD = "554=";
+    private static final String LOGON_TAG_NEW_PASSWORD = "925=";
+
+
     @JsonProperty(required = true)
     protected String beginString = "FIX.4.2";
     @JsonProperty(required = true)
@@ -80,9 +85,9 @@ public class FixBean extends BaseFixBean {
         addToConfig(SETTING_END_TIME, endTime, stringBuilder);
         addToConfig(SETTING_START_DAY, startDay,stringBuilder);
         addToConfig(SETTING_END_DAY, endDay, stringBuilder);
-        addToConfig(getSettingLogonTag(username), username, stringBuilder);
-        addToConfig(getSettingLogonTag(password), password, stringBuilder);
-        addToConfig(getSettingLogonTag(newPassword), newPassword, stringBuilder);
+        addToConfig(getSettingLogonTag(username), LOGON_TAG_USERNAME + username, stringBuilder);
+        addToConfig(getSettingLogonTag(password), LOGON_TAG_PASSWORD + password, stringBuilder);
+        addToConfig(getSettingLogonTag(newPassword), LOGON_TAG_NEW_PASSWORD + newPassword, stringBuilder);
         addToConfig(SETTING_TIMESTAMP_PRECISION, timeStampPrecision, stringBuilder);
         addToConfig(SETTING_ENABLE_NEXT_EXPECTED_MSG_SEQ_NUM, enableNextExpectedMsgSeqNum, stringBuilder);
         addToConfig(SETTING_REQUIRES_ORIG_SENDING_TIME, requiresOrigSendingTime, stringBuilder);
@@ -194,15 +199,15 @@ public class FixBean extends BaseFixBean {
     }
 
     public void setUsername(String username) {
-        this.username = "553=" + requireNotNullOrBlank(SETTING_LOGON_TAG, username);
+        this.username = requireNotNullOrBlank(SETTING_LOGON_TAG, username);
     }
 
     public void setPassword(String password) {
-        this.password = "554=" + requireNotNullOrBlank(SETTING_LOGON_TAG + 1, password);
+        this.password = requireNotNullOrBlank(SETTING_LOGON_TAG + 1, password);
     }
 
     public void setNewPassword(String newPassword) {
-        this.newPassword = "925=" + requireNotNullOrBlank(SETTING_LOGON_TAG + 2, newPassword);
+        this.newPassword = requireNotNullOrBlank(SETTING_LOGON_TAG + 2, newPassword);
     }
 
     public String getEncryptPassword() {
@@ -245,10 +250,6 @@ public class FixBean extends BaseFixBean {
 
     public String getUsername() {
         return username;
-    }
-
-    public String getRawUsername() {
-        return username.substring(4); //original one is 553=username format
     }
 
     public String getPassword() {

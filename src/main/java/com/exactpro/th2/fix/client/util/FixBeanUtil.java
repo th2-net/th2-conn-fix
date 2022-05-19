@@ -39,7 +39,7 @@ public class FixBeanUtil {
 
     public static <T> StringBuilder addToConfig(String tagName, T tagValue, StringBuilder sb) {
 
-        if (tagValue != null) {
+        if (tagName != null && tagValue != null) {
             sb.append(tagName)
                     .append("=")
                     .append(tagValue)
@@ -100,7 +100,7 @@ public class FixBeanUtil {
                     settings.getTargetCompID(),
                     settings.getSocketConnectHost(),
                     Long.toString(settings.getSocketConnectPort()),
-                    settings.getRawUsername(),
+                    settings.getUsername(),
                     dataDictionary));
         }
         return tableBuilder.build();
