@@ -1,5 +1,6 @@
 package com.exactpro.th2.fix.client.fixBean;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
@@ -188,6 +189,35 @@ public class FixBean extends BaseFixBean {
             throw new IllegalArgumentException("seqNumTarget must not be negative");
         }
         this.seqNumTarget = seqNumTarget;
+    }
+
+    @Override
+    public String getBeginString() {
+        return beginString;
+    }
+
+    @Override
+    public void setBeginString(String beginString) {
+        this.beginString = beginString;
+    }
+
+    @Override
+    public String getSocketConnectHost() {
+        return socketConnectHost;
+    }
+
+    @Override
+    public void setSocketConnectHost(String socketConnectHost) {
+        this.socketConnectHost = socketConnectHost;
+    }
+
+    @Override
+    public Long getSocketConnectPort() {
+        return socketConnectPort;
+    }
+
+    public void setSocketConnectPort(long socketConnectPort) {
+        this.socketConnectPort = socketConnectPort;
     }
 
     public Integer getSeqNumTarget() {

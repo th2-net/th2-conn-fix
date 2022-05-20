@@ -96,6 +96,7 @@ public class MainTest extends Main {
         fixBean.setFileLogPath("outgoing/");
         fixBean.setFileStorePath("storage/messages/");
         fixBean.setSocketConnectHost("localhost");
+        fixBean.setCheckRequiredTags("false");
 
         FixBean fixBean1 = new FixBean();
         fixBean1.setBeginString("FIXT.1.1");
@@ -182,7 +183,7 @@ public class MainTest extends Main {
 
         Message fixMessage1 = new Message();
         Message.Header headerClient1 = fixMessage1.getHeader();
-        headerClient1.setField(new BeginString("FIXT.1.1"));
+        headerClient1.setField(new BeginString("FIX.4.4"));
         headerClient1.setField(new MsgType(MsgType.TRADE_CAPTURE_REPORT));
         headerClient1.setField(new SenderCompID("client"));
         headerClient1.setField(new TargetCompID("server"));
