@@ -3,6 +3,7 @@ package com.exactpro.th2.fix.client;
 import com.exactpro.th2.common.grpc.AnyMessage;
 import com.exactpro.th2.common.grpc.ConnectionID;
 import com.exactpro.th2.common.grpc.EventBatch;
+import com.exactpro.th2.common.grpc.EventID;
 import com.exactpro.th2.common.grpc.MessageGroup;
 import com.exactpro.th2.common.grpc.MessageGroupBatch;
 import com.exactpro.th2.common.grpc.MessageID;
@@ -11,16 +12,11 @@ import com.exactpro.th2.common.grpc.RawMessageMetadata;
 import com.exactpro.th2.common.schema.grpc.router.GrpcRouter;
 import com.exactpro.th2.common.schema.message.MessageListener;
 import com.exactpro.th2.common.schema.message.MessageRouter;
-import com.exactpro.th2.common.schema.message.MessageRouterContext;
 import com.exactpro.th2.common.schema.message.SubscriberMonitor;
-import com.exactpro.th2.common.schema.message.configuration.MessageRouterConfiguration;
-import com.exactpro.th2.common.schema.message.impl.rabbitmq.connection.ConnectionManager;
 import com.exactpro.th2.fix.client.exceptions.CreatingConfigFileException;
 import com.exactpro.th2.fix.client.fixBean.FixBean;
 import com.exactpro.th2.fix.client.util.MessageUtil;
 import com.google.protobuf.ByteString;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -55,32 +51,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.any;
 
 public class MainTest extends Main {
 
+    private MessageListener<MessageGroupBatch> listener;
+    private final List<MessageGroupBatch> messages = new ArrayList<>();
+    private final List<EventBatch> events = new ArrayList<>();
+
     @Test //for manual test
     public void runTest() throws Exception {
-
-//newOrderSingle
-//        Message fixMessage = new Message();
-//        Message.Header header = fixMessage.getHeader();
-//        header.setField(new BeginString("FIX.4.2"));
-//        header.setField(new MsgType("D"));
-//        header.setField(new SenderCompID("client"));
-//        header.setField(new TargetCompID("server"));
-//        header.setField(new SenderSubID("sendSubId"));
-//        header.setField(new TargetSubID("tarSubId"));
-
-//
-//        quickfix.fix42.NewOrderSingle fixMessage2 = new quickfix.fix42.NewOrderSingle(
-//                new ClOrdID("ClOrdID"),
-//                new HandlInst('3'),
-//                new Symbol("Symbol"),
-//                new Side('1'),
-//                new TransactTime(LocalDateTime.now()),
-//                new OrdType('1'));
-//        fixMessage2.setField(new SenderCompID("client2"));
-//        fixMessage2.setField(new TargetCompID("server"));
 
         Main.Settings settings = new Settings();
 
@@ -115,6 +96,7 @@ public class MainTest extends Main {
         fixBean.setFileLogPath("outgoing/");
         fixBean.setFileStorePath("storage/messages/");
         fixBean.setSocketConnectHost("localhost");
+        fixBean.setCheckRequiredTags("false");
 
         FixBean fixBean1 = new FixBean();
         fixBean1.setBeginString("FIXT.1.1");
@@ -141,19 +123,32 @@ public class MainTest extends Main {
 
         List<FixBean> fixBeans = new ArrayList<>();
         fixBeans.add(fixBean);
-        fixBeans.add(fixBean1);
+//        fixBeans.add(fixBean1);
         settings.setSessionSettings(fixBeans);
 
-        System.out.println(settings);
-        MyMessageRouter messageRouter = new MyMessageRouter();
+        MessageRouter<MessageGroupBatch> messageRouter = Mockito.mock(MessageRouter.class);
+        Mockito.doAnswer(invocation -> {
+            listener = (MessageListener<MessageGroupBatch> ) invocation.getArguments()[0];
+            return (SubscriberMonitor) () -> {};
+        }).when(messageRouter).subscribe(any(), any());
 
-        MyEventRouter eventRouter = new MyEventRouter();
+        Mockito.doAnswer(invocation -> {
+            messages.add(invocation.getArgumentAt(0, MessageGroupBatch.class));
+            return null;
+        }).when(messageRouter).send(any(), any());
+
+        MessageRouter<EventBatch> eventRouter = Mockito.mock(MessageRouter.class);
+        Mockito.doAnswer(invocation -> {
+            events.add(invocation.getArgumentAt(0, EventBatch.class));
+            return null;
+        }).when(eventRouter).sendAll(any(), eq("publish"), eq("event"));
+
         GrpcRouter grpcRouter = Mockito.mock(GrpcRouter.class);
         ConcurrentLinkedDeque<Main.Resources> resources = new ConcurrentLinkedDeque<>();
 
         Thread thread = new Thread(() -> {
             try {
-                Main.run(settings, messageRouter, eventRouter, grpcRouter, resources);
+                Main.run(settings, messageRouter, eventRouter, grpcRouter, resources, "conn-qfj");
             } catch (ConfigError | CreatingConfigFileException | IncorrectDataFormat configError) {
                 configError.printStackTrace();
             }
@@ -188,7 +183,7 @@ public class MainTest extends Main {
 
         Message fixMessage1 = new Message();
         Message.Header headerClient1 = fixMessage1.getHeader();
-        headerClient1.setField(new BeginString("FIXT.1.1"));
+        headerClient1.setField(new BeginString("FIX.4.4"));
         headerClient1.setField(new MsgType(MsgType.TRADE_CAPTURE_REPORT));
         headerClient1.setField(new SenderCompID("client"));
         headerClient1.setField(new TargetCompID("server"));
@@ -198,6 +193,7 @@ public class MainTest extends Main {
         fixMessage1.setField(new TradeReportID("tradeID"));
         fixMessage1.setField(new PreviouslyReported(true));
         fixMessage1.setField(new TrdType(1));
+//        fixMessage1.setField(new Scope("scope"));
 
         Group noSidesGr1 = new Group(new NoSides().getField(), new Side().getField());
         noSidesGr1.setField(new Side('1'));
@@ -226,6 +222,7 @@ public class MainTest extends Main {
                 .addGroups(MessageGroup.newBuilder()
                         .addMessages(AnyMessage.newBuilder()
                                 .setRawMessage(RawMessage.newBuilder()
+                                        .setParentEventId(EventID.newBuilder().setId("eventID123"))
                                         .setBody(ByteString
                                                 .copyFrom(fixMessage1
                                                         .toString()
@@ -268,23 +265,19 @@ public class MainTest extends Main {
                         .build())
                 .build();
 
-        Thread.sleep(5_000);
-        messageRouter.sendToSubscriber("client1", messageGroupBatch);
+
+        Thread.sleep(5000);
+
+        listener.handler("client1", messageGroupBatch);
 //        messageRouter.sendToSubscriber("client2", messageGroupBatch2);
 
         Thread.sleep(1000 * 6);
-
-//        System.out.println("events: \n");
-//        for (EventBatch event: eventRouter.messages){
-//
-//            System.out.println(event);
-//        }
 
         String testString;
         int countOfOrders = 0;
         int countOfResponses = 0;
 
-        for (MessageGroupBatch message : messageRouter.messages) {
+        for (MessageGroupBatch message : messages) {
             testString = MessageUtil.rawToString(message.getGroupsList().get(0).getMessagesList().get(0));
             if (testString.contains("\00135=D") || testString.contains("\00135=AE")) {
                 countOfOrders++;
@@ -294,125 +287,10 @@ public class MainTest extends Main {
             }
 
         }
-        System.out.println(countOfOrders);
+        System.out.println("count of orders: " + countOfOrders);
         Assert.assertEquals(countOfOrders, countOfResponses);
-    }
 
-    public static class MyMessageRouter implements MessageRouter<MessageGroupBatch> {
-
-        List<MessageListener> listeners = new ArrayList<>();
-        List<MessageGroupBatch> messages = new ArrayList<>();
-
-        public void sendToSubscriber(String tag, MessageGroupBatch message) throws Exception {
-            listeners.get(0).handler(tag, message);
-        }
-
-        @Override
-        public void init(@NotNull ConnectionManager connectionManager, @NotNull MessageRouterConfiguration configuration) {
-
-        }
-
-        @Override
-        public void init(@NotNull MessageRouterContext context) {
-
-        }
-
-        @Override
-        public void send(MessageGroupBatch message) {
-
-            messages.add(message);
-        }
-
-        @Override
-        public void send(MessageGroupBatch message, String... queueAttr) {
-            messages.add(message);
-        }
-
-        @Override
-        public void sendAll(MessageGroupBatch message, String... queueAttr) {
-            messages.add(message);
-        }
-
-        @Override
-        public @Nullable SubscriberMonitor subscribe(MessageListener callback, String... queueAttr) {
-
-            listeners.add(callback);
-
-            return () -> {
-            };
-        }
-
-        @Override
-        public @Nullable SubscriberMonitor subscribeAll(MessageListener callback) {
-            listeners.add(callback);
-
-            return () -> {
-            };
-        }
-
-        @Override
-        public @Nullable SubscriberMonitor subscribeAll(MessageListener callback, String... queueAttr) {
-            listeners.add(callback);
-
-            return () -> {
-            };
-        }
-
-        @Override
-        public void close() {
-
-        }
-
-    }
-
-    public static class MyEventRouter implements MessageRouter<EventBatch> {
-        
-        List<EventBatch> messages = new ArrayList<>();
-
-        @Override
-        public void init(@NotNull ConnectionManager connectionManager, @NotNull MessageRouterConfiguration configuration) {
-
-        }
-
-        @Override
-        public void init(@NotNull MessageRouterContext context) {
-
-        }
-
-        @Override
-        public @Nullable SubscriberMonitor subscribe(MessageListener<EventBatch> callback, String... queueAttr) {
-            return null;
-        }
-
-        @Override
-        public @Nullable SubscriberMonitor subscribeAll(MessageListener<EventBatch> callback) {
-            return null;
-        }
-
-        @Override
-        public @Nullable SubscriberMonitor subscribeAll(MessageListener<EventBatch> callback, String... queueAttr) {
-            return null;
-        }
-
-        @Override
-        public void send(EventBatch message) {
-
-        }
-
-        @Override
-        public void send(EventBatch message, String... queueAttr) {
-
-        }
-
-        @Override
-        public void sendAll(EventBatch message, String... queueAttr) {
-
-            this.messages.add(message);
-        }
-
-        @Override
-        public void close() {
-
-        }
+//        System.out.println("events: ");
+//        events.forEach(System.out::println);
     }
 }

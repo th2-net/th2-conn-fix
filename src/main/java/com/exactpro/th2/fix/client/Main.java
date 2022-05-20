@@ -4,9 +4,7 @@ import com.exactpro.th2.common.event.Event;
 import com.exactpro.th2.common.grpc.AnyMessage;
 import com.exactpro.th2.common.grpc.ConnectionID;
 import com.exactpro.th2.common.grpc.EventBatch;
-import com.exactpro.th2.common.grpc.EventID;
 import com.exactpro.th2.common.grpc.MessageGroupBatch;
-import com.exactpro.th2.common.grpc.MessageID;
 import com.exactpro.th2.common.schema.factory.CommonFactory;
 import com.exactpro.th2.common.schema.grpc.router.GrpcRouter;
 import com.exactpro.th2.common.schema.message.MessageListener;
@@ -25,6 +23,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
+import org.apache.commons.lang3.concurrent.ConcurrentException;
+import org.apache.commons.lang3.concurrent.LazyInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import quickfix.ConfigError;
@@ -172,7 +172,7 @@ public class Main {
         GrpcRouter grpcRouter = factory.getGrpcRouter();
 
         try {
-            run(settings, messageRouter, eventRouter, grpcRouter, resources);
+            run(settings, messageRouter, eventRouter, grpcRouter, resources, factory.getBoxConfiguration().getBoxName());
         } catch (IncorrectDataFormat | CreatingConfigFileException e) {
             LOGGER.error("Error when using the config file", e);
             System.exit(1);
@@ -212,7 +212,7 @@ public class Main {
     }
 
     public static void run(Settings settings, MessageRouter<MessageGroupBatch> messageRouter, MessageRouter<EventBatch> eventRouter,
-                           GrpcRouter grpcRouter, Deque<Resources> resources) throws CreatingConfigFileException, ConfigError, IncorrectDataFormat {
+                           GrpcRouter grpcRouter, Deque<Resources> resources, String boxName) throws CreatingConfigFileException, ConfigError, IncorrectDataFormat {
 
         File configFile = FixBeanUtil.createConfig(settings);
 
@@ -223,12 +223,23 @@ public class Main {
             connectionIDs.put(sessionId, ConnectionID.newBuilder().setSessionAlias(sessionAlias).build());
         });
 
-        String eventName = "FIX client " + String.join(":", sessionIDs.keySet()) + " " + Instant.now();
         Event rootEvent = MessageRouterUtils.storeEvent(eventRouter, Event.start()
-                        .name(eventName)
+                        .description("Root event")
+                        .name(boxName + " " + Instant.now())
                         .type("Microservice")
+                        .bodyData(FixBeanUtil.getSessionTable(settings.getSessionSettings()))
                 , null);
         String rootEventID = rootEvent.getId();
+
+        LazyInitializer<Event> errorEventInitializer = new LazyInitializer<>() {
+            @Override
+            protected Event initialize() {
+                return MessageRouterUtils.storeEvent(eventRouter, Event.start()
+                                .name(boxName + " Error events " + Instant.now())
+                                .type("Root error"),
+                        rootEventID);
+            }
+        };
 
         FixClient fixClient = new FixClient(new SessionSettings(configFile.getAbsolutePath()), settings,
                 messageRouter, eventRouter, connectionIDs, rootEventID, settings.queueCapacity);
@@ -237,18 +248,20 @@ public class Main {
         resources.add(new Resources("client", fixClient::stop));
 
         ClientController controller = new ClientController(fixClient);
+        resources.add(new Resources("client-controller", controller::stop));
 
         MessageListener<MessageGroupBatch> listener = (consumerTag, groupBatch) -> {
             if (!controller.isRunning()) controller.start(settings.autoStopAfter);
 
             groupBatch.getGroupsList().forEach((group) -> {
+                AnyMessage message = null;
                 try {
                     if (group.getMessagesCount() != 1) {
                         if (LOGGER.isErrorEnabled()) {
                             LOGGER.error("Message group contains more or less than 1 message {} ", toJson(group));
                         }
                     } else {
-                        AnyMessage message = group.getMessagesList().get(0);
+                        message = group.getMessagesList().get(0);
                         if (!message.hasRawMessage()) {
                             if (LOGGER.isErrorEnabled()) {
                                 LOGGER.error("Message in the group is not a raw message {} ", toJson(message));
@@ -290,18 +303,21 @@ public class Main {
                         dataDictionary.validate(fixMessage, true);
 
                         if (!session.send(fixMessage)) {
-                            LOGGER.error("Message not sent. Message was not queued for transmission to the counterparty");
-
-                            EventID eventID = message.getMessage().getParentEventId();
-                            String parentEventID = eventID.getId().isEmpty() ? rootEventID : eventID.getId();
-                            MessageID messageID = message.getMessage().getMetadata().getId();
-                            Event event = Event.start().messageID(messageID).type("Error").status(Event.Status.FAILED);
-                            MessageRouterUtils.storeEvent(eventRouter, event, parentEventID);
+                            throw new IllegalStateException("Message not sent. Message was not queued for transmission to the counterparty");
+                        } else {
+                            MessageRouterUtils.storeEvent(eventRouter, MessageUtil.getEvent(message, "Message successfully sent"),
+                                    MessageUtil.getParentEventID(message, rootEventID));
                         }
                     }
                 } catch (Exception e) {
                     LOGGER.error("Failed to handle message group: {}", toJson(group), e);
-                    MessageRouterUtils.storeEvent(eventRouter, rootEventID, "Failed to handle message group: " + toJson(group), "Error", e);
+
+                    try {
+                        MessageRouterUtils.storeEvent(eventRouter, MessageUtil.getEvent(message, "Failed to handle message group", e),
+                                MessageUtil.getParentEventID(message, errorEventInitializer.get().getId()));
+                    } catch (ConcurrentException ex) {
+                        LOGGER.error("Failed to get root error event id", ex);
+                    }
                 }
             });
         };
