@@ -8078,7 +8078,6 @@
    <value enum='SPL' description='INTEGRAL_SPLIT' />
    <value enum='TA' description='TRANSACTION_FROM_ASSIGNMENT' />
    <value enum='TOT' description='TOTAL_TRANSACTION_QTY' />
-   <value enum='TQ' description='TRANSACTION_QUANTITY' />
    <value enum='TRF' description='TRANSFER_TRADE_QTY' />
    <value enum='TX' description='TRANSACTION_FROM_EXERCISE' />
    <value enum='XM' description='CROSS_MARGIN_QTY' />
