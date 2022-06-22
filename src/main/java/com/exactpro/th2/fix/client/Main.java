@@ -224,8 +224,7 @@ public class Main {
         });
 
         Event rootEvent = MessageRouterUtils.storeEvent(eventRouter, Event.start()
-                        .description("Root event")
-                        .name(boxName + " " + Instant.now())
+                        .name("Sessions events " + Instant.now())
                         .type("Microservice")
                         .bodyData(FixBeanUtil.getSessionTable(settings.getSessionSettings()))
                 , null);
