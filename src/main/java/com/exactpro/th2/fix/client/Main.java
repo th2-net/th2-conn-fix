@@ -263,24 +263,20 @@ public class Main {
                         } else {
                             fixMessage = MessageUtils.parse(session, strMessage);
                         }
-
-                        if (!session.send(fixMessage)) {
+                        FixMessage fixMessage1 = new FixMessage(fixMessage, message.getRawMessage().getParentEventId());
+                        if (!session.send(fixMessage1)) {
                             throw new IllegalStateException("Message not sent. Message was not queued for transmission to the counterparty");
-                        } else {
-                            MessageRouterUtils.storeEvent(eventRouter, MessageUtil.getSuccessfulEvent(message, "Message successfully sent"),
-                                    MessageUtil.getParentEventID(message, rootEventID));
                         }
                     }
                 } catch (Exception e) {
                     LOGGER.error("Failed to handle message group: {}", toJson(group), e);
 
                     AnyMessage message = group.getMessagesList().get(0);
-                    MessageRouterUtils.storeEvent(eventRouter, MessageUtil.getErrorEvent(message, "Failed to handle message group"),
+                    MessageRouterUtils.storeEvent(eventRouter, MessageUtil.getErrorEvent("Failed to handle message group"),
                             MessageUtil.getParentEventID(message, rootEventID));
                 }
             });
         };
-
         try {
             SubscriberMonitor monitor = Objects.requireNonNull(messageRouter.subscribe(listener, INPUT_QUEUE_ATTRIBUTE), "Subscriber monitor must not be null.");
             resources.add(new Resources("raw-monitor", monitor::unsubscribe));

@@ -44,27 +44,33 @@ public class MessageUtil {
         return message.getRawMessage().getMetadata().getId().getConnectionId().getSessionAlias();
     }
 
-    public static String getParentEventID(AnyMessage message, String rootEventID){
-       return message.getRawMessage().getParentEventId().getId().isEmpty() ? rootEventID : message.getRawMessage().getParentEventId().getId();
+    public static String getParentEventID(AnyMessage message, String rootEventID) {
+        return message.getRawMessage().getParentEventId().getId().isEmpty() ? rootEventID : message.getRawMessage().getParentEventId().getId();
     }
 
-    public static Event getSuccessfulEvent(AnyMessage message, String name){
-        return getEvent(message, name, "info", Event.Status.PASSED);
+    public static Event getErrorEvent(String name) {
+        return Event
+                .start()
+                .endTimestamp()
+                .type("Error")
+                .name(name)
+                .status(Event.Status.FAILED);
     }
 
-    public static Event getErrorEvent(AnyMessage message, String name){
-        return getEvent(message, name, "Error", Event.Status.FAILED);
-    }
+    public static Event getSuccessfulEvent(MessageGroupBatch message, String name) {
 
-    private static Event getEvent(AnyMessage message, String name, String type, Event.Status status){
         return Event
                 .start()
                 .messageID(message
+                        .getGroupsList()
+                        .get(0)
+                        .getMessagesList()
+                        .get(0)
                         .getRawMessage()
                         .getMetadata()
                         .getId())
-                .type(type)
+                .type("info")
                 .name(name)
-                .status(status);
+                .status(Event.Status.PASSED);
     }
 }

@@ -96,7 +96,11 @@ public class LogImpl implements Log {
     private void onMessage(String message, Direction direction) throws IOException {
         Supplier<Long> sequence = direction == Direction.FIRST ? inputSeq : outputSeq;
         QueueAttribute attribute = direction == Direction.FIRST ? QueueAttribute.FIRST : QueueAttribute.SECOND;
-        messageRouter.send(MessageUtil.toBatch(message.getBytes(), connectionID, direction, sequence.get()), attribute.toString());
+        var messageGroupBatch = MessageUtil.toBatch(message.getBytes(), connectionID, direction, sequence.get());
+        messageRouter.send(messageGroupBatch, attribute.toString());
+
+        String parentEventID = FixMessage.getParentEventIDs().get(message) == null ? parentEventId : FixMessage.getParentEventIDs().get(message).getId();
+        MessageRouterUtils.storeEvent(eventRouter, MessageUtil.getSuccessfulEvent(messageGroupBatch, "Message successfully sent"), parentEventID);
     }
 
     private static Supplier<Long> createSequence() {
