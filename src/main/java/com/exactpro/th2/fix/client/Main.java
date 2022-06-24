@@ -23,7 +23,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
-import org.apache.commons.lang3.concurrent.ConcurrentException;
 import org.apache.commons.lang3.concurrent.LazyInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -254,14 +253,13 @@ public class Main {
             if (!controller.isRunning()) controller.start(settings.autoStopAfter);
 
             groupBatch.getGroupsList().forEach((group) -> {
-                AnyMessage message = null;
                 try {
                     if (group.getMessagesCount() != 1) {
                         if (LOGGER.isErrorEnabled()) {
                             LOGGER.error("Message group contains more or less than 1 message {} ", toJson(group));
                         }
                     } else {
-                        message = group.getMessagesList().get(0);
+                        AnyMessage message = group.getMessagesList().get(0);
                         if (!message.hasRawMessage()) {
                             if (LOGGER.isErrorEnabled()) {
                                 LOGGER.error("Message in the group is not a raw message {} ", toJson(message));
@@ -300,28 +298,20 @@ public class Main {
                         } else {
                             fixMessage = MessageUtils.parse(session, strMessage);
                         }
-                        dataDictionary.validate(fixMessage, true);
 
-                        if (!session.send(fixMessage)) {
+                        FixMessage fixMessage1 = new FixMessage(fixMessage, message.getRawMessage().getParentEventId());
+                        if (!session.send(fixMessage1)) {
                             throw new IllegalStateException("Message not sent. Message was not queued for transmission to the counterparty");
-                        } else {
-                            MessageRouterUtils.storeEvent(eventRouter, MessageUtil.getEvent(message, "Message successfully sent"),
-                                    MessageUtil.getParentEventID(message, rootEventID));
                         }
                     }
                 } catch (Exception e) {
                     LOGGER.error("Failed to handle message group: {}", toJson(group), e);
-
-                    try {
-                        MessageRouterUtils.storeEvent(eventRouter, MessageUtil.getEvent(message, "Failed to handle message group", e),
-                                MessageUtil.getParentEventID(message, errorEventInitializer.get().getId()));
-                    } catch (ConcurrentException ex) {
-                        LOGGER.error("Failed to get root error event id", ex);
-                    }
+                    AnyMessage message = group.getMessagesList().get(0);
+                    MessageRouterUtils.storeEvent(eventRouter, MessageUtil.getErrorEvent("Failed to handle message group"),
+                            MessageUtil.getParentEventID(message, rootEventID));
                 }
             });
         };
-
         try {
             SubscriberMonitor monitor = Objects.requireNonNull(messageRouter.subscribe(listener, INPUT_QUEUE_ATTRIBUTE), "Subscriber monitor must not be null.");
             resources.add(new Resources("raw-monitor", monitor::unsubscribe));

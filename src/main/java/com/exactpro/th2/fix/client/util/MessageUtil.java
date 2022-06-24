@@ -43,35 +43,33 @@ public class MessageUtil {
         return message.getRawMessage().getMetadata().getId().getConnectionId().getSessionAlias();
     }
 
-    public static String getParentEventID(AnyMessage message, String defaultParentEventID) {
-        if (message == null) {
-            return defaultParentEventID;
-        }
-        return message.getRawMessage().getParentEventId().getId().isEmpty() ? defaultParentEventID : message.getRawMessage().getParentEventId().getId();
+    public static String getParentEventID(AnyMessage message, String rootEventID) {
+        return message.getRawMessage().getParentEventId().getId().isEmpty() ? rootEventID : message.getRawMessage().getParentEventId().getId();
     }
 
-    public static Event getEvent(AnyMessage message, String name) {
-        return getEvent(message, name, null);
-    }
-
-    public static Event getEvent(AnyMessage message, String name, Throwable throwable) {
-
-        Event event = Event.start()
+    public static Event getErrorEvent(String name) {
+        return Event
+                .start()
                 .endTimestamp()
-                .name(name);
+                .type("Error")
+                .name(name)
+                .status(Event.Status.FAILED);
+    }
 
-        if (message != null) {
-            event.messageID(message.getRawMessage().getMetadata().getId());
-        }
+    public static Event getSuccessfulEvent(MessageGroupBatch message, String name) {
 
-        if (throwable != null) {
-            event.exception(throwable, true)
-                    .type("Error")
-                    .status(Event.Status.FAILED);
-        } else {
-            event.type("Info")
-                    .status(Event.Status.PASSED);
-        }
-        return event;
+        return Event
+                .start()
+                .messageID(message
+                        .getGroupsList()
+                        .get(0)
+                        .getMessagesList()
+                        .get(0)
+                        .getRawMessage()
+                        .getMetadata()
+                        .getId())
+                .type("info")
+                .name(name)
+                .status(Event.Status.PASSED);
     }
 }
