@@ -45,6 +45,7 @@ import quickfix.field.TradingSessionID;
 import quickfix.field.TransactTime;
 import quickfix.field.TrdType;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -77,7 +78,7 @@ public class MainTest extends Main {
         fixBean.setEndTime("21:15:00 Europe/Moscow");
         fixBean.setStartDay("monday");
         fixBean.setEndDay("sunday");
-        fixBean.setReconnectInterval(10L);
+        fixBean.setReconnectInterval(5L);
         fixBean.setAutorelogin(true);
         fixBean.setResetOnLogon("false");
         fixBean.setUseDefaultApplVerID(true);
@@ -266,7 +267,7 @@ public class MainTest extends Main {
                 .build();
 
 
-        Thread.sleep(5000);
+        Thread.sleep(14000);
 
         listener.handler("client1", messageGroupBatch);
 //        messageRouter.sendToSubscriber("client2", messageGroupBatch2);

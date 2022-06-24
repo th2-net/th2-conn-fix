@@ -11,16 +11,20 @@ import com.exactpro.th2.common.schema.message.MessageListener;
 import com.exactpro.th2.common.schema.message.MessageRouter;
 import com.exactpro.th2.common.schema.message.MessageRouterUtils;
 import com.exactpro.th2.common.schema.message.SubscriberMonitor;
+import com.exactpro.th2.common.utils.event.EventBatcher;
+import com.exactpro.th2.common.utils.event.MessageBatcher;
 import com.exactpro.th2.fix.client.exceptions.CreatingConfigFileException;
 import com.exactpro.th2.fix.client.exceptions.IncorrectFixFileNameException;
 import com.exactpro.th2.fix.client.fixBean.BaseFixBean;
 import com.exactpro.th2.fix.client.fixBean.FixBean;
 import com.exactpro.th2.fix.client.impl.Destructor;
+import com.exactpro.th2.fix.client.util.EventUtil;
 import com.exactpro.th2.fix.client.util.FixBeanUtil;
 import com.exactpro.th2.fix.client.util.MessageUtil;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import kotlin.Unit;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.commons.lang3.concurrent.LazyInitializer;
@@ -51,12 +55,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import static com.exactpro.th2.common.message.MessageUtils.toJson;
+import static com.exactpro.th2.common.schema.message.QueueAttribute.EVENT;
+import static com.exactpro.th2.common.schema.message.QueueAttribute.PUBLISH;
 
 public class Main {
 
@@ -240,8 +247,31 @@ public class Main {
             }
         };
 
-        FixClient fixClient = new FixClient(new SessionSettings(configFile.getAbsolutePath()), settings,
-                messageRouter, eventRouter, connectionIDs, rootEventID, settings.queueCapacity);
+        ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(settings.threads);
+        resources.add(new Resources("executor", executor::shutdown));
+
+        MessageBatcher messageBatcher = new MessageBatcher(settings.maxBatchSize, settings.maxFlushTime, executor, (batch, direction) -> {
+            try {
+                messageRouter.send(batch, direction.name());
+            } catch (IOException e) {
+                LOGGER.error("Failed to send message batch.", e);
+            }
+            return Unit.INSTANCE;
+        }, (e) -> {
+            throw new IllegalStateException(e);
+        });
+
+        EventBatcher eventBatcher = new EventBatcher(settings.maxBatchSize, settings.maxFlushTime, executor, eventBatch -> {
+            try {
+                eventRouter.sendAll(eventBatch, PUBLISH.getValue(), EVENT.getValue());
+            } catch (IOException e) {
+                LOGGER.error("Failed to send event batch: {}", e.getMessage());
+            }
+            return Unit.INSTANCE;
+        });
+
+        FixClient fixClient = new FixClient(new SessionSettings(configFile.getAbsolutePath()), messageBatcher, settings,
+                eventBatcher, eventRouter, connectionIDs, rootEventID, settings.queueCapacity);
 
         configFile.deleteOnExit();
         resources.add(new Resources("client", fixClient::stop));
@@ -306,9 +336,15 @@ public class Main {
                     }
                 } catch (Exception e) {
                     LOGGER.error("Failed to handle message group: {}", toJson(group), e);
-                    AnyMessage message = group.getMessagesList().get(0);
-                    MessageRouterUtils.storeEvent(eventRouter, MessageUtil.getErrorEvent("Failed to handle message group"),
-                            MessageUtil.getParentEventID(message, rootEventID));
+
+                    AnyMessage message;
+                    try {
+                        message = group.getMessagesList().get(0);
+                    } catch (Exception ex) {
+                        message = null;
+                    }
+                    String parentEventID = MessageUtil.getParentEventID(message, rootEventID);
+                    eventBatcher.onEvent(EventUtil.toEvent(parentEventID, "Failed to handle message group", e));
                 }
             });
         };
@@ -356,6 +392,9 @@ public class Main {
         int autoStopAfter = 0;
         int queueCapacity = 10000;
         boolean zipDictionaries = false;
+        Integer threads = 2;
+        Integer maxBatchSize = 100;
+        Long maxFlushTime = 1000L;
         @JsonProperty(required = true)
         List<FixBean> sessionSettings = new ArrayList<>();
         @JsonIgnore
@@ -429,6 +468,30 @@ public class Main {
 
         public void setZipDictionaries(boolean zipDictionaries) {
             this.zipDictionaries = zipDictionaries;
+        }
+
+        public Integer getThreads() {
+            return threads;
+        }
+
+        public void setThreads(Integer threads) {
+            this.threads = threads;
+        }
+
+        public Integer getMaxBatchSize() {
+            return maxBatchSize;
+        }
+
+        public void setMaxBatchSize(Integer maxBatchSize) {
+            this.maxBatchSize = maxBatchSize;
+        }
+
+        public Long getMaxFlushTime() {
+            return maxFlushTime;
+        }
+
+        public void setMaxFlushTime(Long maxFlushTime) {
+            this.maxFlushTime = maxFlushTime;
         }
 
         @Override

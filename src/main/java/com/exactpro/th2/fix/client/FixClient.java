@@ -2,8 +2,9 @@ package com.exactpro.th2.fix.client;
 
 import com.exactpro.th2.common.grpc.ConnectionID;
 import com.exactpro.th2.common.grpc.EventBatch;
-import com.exactpro.th2.common.grpc.MessageGroupBatch;
 import com.exactpro.th2.common.schema.message.MessageRouter;
+import com.exactpro.th2.common.utils.event.EventBatcher;
+import com.exactpro.th2.common.utils.event.MessageBatcher;
 import com.exactpro.th2.fix.client.service.ClientApplication;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,12 +29,12 @@ public class FixClient {
     private volatile boolean isRunning = false;
 
 
-    public FixClient(SessionSettings settings, Main.Settings sessionsSettings, MessageRouter<MessageGroupBatch> messageRouter, MessageRouter<EventBatch> eventRouter,
-                     Map<SessionID, ConnectionID> connections, String rootEventId, int queueCapacity) throws ConfigError {
+    public FixClient(SessionSettings settings, MessageBatcher messageBatcher, Main.Settings sessionsSettings, EventBatcher eventBatcher,
+                     MessageRouter<EventBatch> eventRouter, Map<SessionID, ConnectionID> connections, String rootEventId, int queueCapacity) throws ConfigError {
 
         ClientApplication application = new ClientApplication(sessionsSettings);
         MessageStoreFactory messageStoreFactory = new FileStoreFactory(settings);
-        LogFactory logFactory = new LogFactoryImpl(new FileLogFactory(settings), messageRouter, eventRouter, connections, rootEventId);
+        LogFactory logFactory = new LogFactoryImpl(new FileLogFactory(settings), messageBatcher, eventBatcher, eventRouter, connections, rootEventId);
         MessageFactory messageFactory = new FixMessageFactory();
         initiator = new SocketInitiator(application, messageStoreFactory, settings, logFactory, messageFactory, queueCapacity);
     }

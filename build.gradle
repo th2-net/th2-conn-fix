@@ -12,6 +12,13 @@ version = release_version
 
 repositories {
     mavenCentral()
+    maven {
+        url 'https://s01.oss.sonatype.org/content/repositories/snapshots/'
+    }
+
+    maven {
+        url 'https://s01.oss.sonatype.org/content/repositories/releases/'
+    }
     flatDir{
         dirs 'libs'
     }
@@ -19,8 +26,10 @@ repositories {
 
 dependencies {
 
-    implementation 'com.exactpro.th2:common:3.35.0'
+    implementation 'com.exactpro.th2:common:3.39.2'
     implementation 'com.exactpro.th2:grpc-conn:0.0.1'
+
+    implementation group: 'com.exactpro.th2', name: 'common-utils', version: '0.0.1-dev-+'
 
 //    implementation 'org.quickfixj:quickfixj-core:2.3.1'
     compile 'org.quickfixj:quickfixj-core-3.0.0-SNAPSHOT:3.0.0-SNAPSHOT.jar'
