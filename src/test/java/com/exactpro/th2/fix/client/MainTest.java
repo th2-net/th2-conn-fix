@@ -279,7 +279,7 @@ public class MainTest extends Main {
                 .build();
 
 
-        Thread.sleep(5000);
+        Thread.sleep(14000);
 
         listener.handler("client1", messageGroupBatch);
 //        messageRouter.sendToSubscriber("client2", messageGroupBatch2);

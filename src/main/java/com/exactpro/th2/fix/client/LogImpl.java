@@ -3,6 +3,7 @@ package com.exactpro.th2.fix.client;
 import com.exactpro.th2.common.grpc.ConnectionID;
 import com.exactpro.th2.common.grpc.Direction;
 import com.exactpro.th2.common.grpc.EventBatch;
+import com.exactpro.th2.common.grpc.EventID;
 import com.exactpro.th2.common.grpc.MessageGroupBatch;
 import com.exactpro.th2.common.schema.message.MessageRouter;
 import com.exactpro.th2.common.schema.message.MessageRouterUtils;
@@ -99,8 +100,10 @@ public class LogImpl implements Log {
         var messageGroupBatch = MessageUtil.toBatch(message.getBytes(), connectionID, direction, sequence.get());
         messageRouter.send(messageGroupBatch, attribute.toString());
 
-        String parentEventID = FixMessage.getParentEventIDs().get(message) == null ? parentEventId : FixMessage.getParentEventIDs().get(message).getId();
-        MessageRouterUtils.storeEvent(eventRouter, MessageUtil.getSuccessfulEvent(messageGroupBatch, "Message successfully sent"), parentEventID);
+        EventID parentEventID = FixMessage.getMessageParentEventId(message);
+        if (parentEventID != null) {
+            MessageRouterUtils.storeEvent(eventRouter, MessageUtil.getSuccessfulEvent(messageGroupBatch, "Message successfully sent"), parentEventID.getId());
+        }
     }
 
     private static Supplier<Long> createSequence() {

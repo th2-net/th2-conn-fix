@@ -244,7 +244,7 @@ public class Main {
                         FixBean sessionSettings = FixBeanUtil.getSessionSettingsBySessionAlias(settings.getSessionSettings(), sessionAlias);
                         Objects.requireNonNull(sessionSettings, "Unknown session alias + " + sessionAlias);
 
-                        Message fixMessage;
+                        Message qfjMessage;
                         if (sessionSettings.getOrderingFields() != null && sessionSettings.getOrderingFields().equals(YES_SETTING)) {
 
                             DataDictionary dataDictionary;
@@ -258,14 +258,16 @@ public class Main {
 
                             FixMessageFactory messageFactory = (FixMessageFactory) session.getMessageFactory();
 
-                            fixMessage = messageFactory.create(sessionID.getBeginString(), MessageUtils.getMessageType(strMessage), dataDictionary.getOrderedFields());
-                            fixMessage.fromString(strMessage, dataDictionary, true);
+                            qfjMessage = messageFactory.create(sessionID.getBeginString(), MessageUtils.getMessageType(strMessage), dataDictionary.getOrderedFields());
+                            qfjMessage.fromString(strMessage, dataDictionary, true);
                         } else {
-                            fixMessage = MessageUtils.parse(session, strMessage);
+                            qfjMessage = MessageUtils.parse(session, strMessage);
                         }
-                        FixMessage fixMessage1 = new FixMessage(fixMessage, message.getRawMessage().getParentEventId());
-                        if (!session.send(fixMessage1)) {
-                            throw new IllegalStateException("Message not sent. Message was not queued for transmission to the counterparty");
+                        if (!message.getRawMessage().getParentEventId().getId().equals("")) {
+                            FixMessage fixMessage = new FixMessage(qfjMessage, message.getRawMessage().getParentEventId());
+                            sendMessage(session, fixMessage.message);
+                        } else {
+                            sendMessage(session, qfjMessage);
                         }
                     }
                 } catch (Exception e) {
@@ -315,6 +317,12 @@ public class Main {
 
         LOGGER.info("Finished running");
 
+    }
+
+    private static void sendMessage(Session session, Message message) {
+        if (!session.send(message)) {
+            throw new IllegalStateException("Message not sent. Message was not queued for transmission to the counterparty");
+        }
     }
 
     public static class Settings extends BaseFixBean {
