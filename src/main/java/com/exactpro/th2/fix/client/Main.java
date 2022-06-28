@@ -27,6 +27,7 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import kotlin.Unit;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
+import org.apache.commons.lang3.concurrent.ConcurrentException;
 import org.apache.commons.lang3.concurrent.LazyInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,6 +71,7 @@ public class Main {
     private static final String INPUT_QUEUE_ATTRIBUTE = "send";
     private static final String YES_SETTING = "Y";
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
+    private static final int THREADS_FOR_MESSAGES_AND_EVENTS_BATCHER = 2;
 
     public static class Resources {
         private final String name;
@@ -247,7 +249,14 @@ public class Main {
             }
         };
 
-        ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(settings.threads);
+        Map<SessionID, String> sessionsEvents = new HashMap<>();
+        sessionIDs.forEach((sessionAlias, sessionID) -> {
+            String eventName = "Fix client " + sessionAlias + " " + Instant.now();
+            Event event = MessageRouterUtils.storeEvent(eventRouter, rootEventID, eventName, "Microservice", null);
+            sessionsEvents.put(sessionID, event.getId());
+        });
+
+        ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(THREADS_FOR_MESSAGES_AND_EVENTS_BATCHER);
         resources.add(new Resources("executor", executor::shutdown));
 
         MessageBatcher messageBatcher = new MessageBatcher(settings.maxBatchSize, settings.maxFlushTime, executor, (batch, direction) -> {
@@ -258,7 +267,7 @@ public class Main {
             }
             return Unit.INSTANCE;
         }, (e) -> {
-            throw new IllegalStateException(e);
+            throw new IllegalStateException("Failed to send messages.", e);
         });
 
         EventBatcher eventBatcher = new EventBatcher(settings.maxBatchSize, settings.maxFlushTime, executor, eventBatch -> {
@@ -270,8 +279,8 @@ public class Main {
             return Unit.INSTANCE;
         });
 
-        FixClient fixClient = new FixClient(new SessionSettings(configFile.getAbsolutePath()), messageBatcher, settings,
-                eventBatcher, eventRouter, connectionIDs, rootEventID, settings.queueCapacity);
+        FixClient fixClient = new FixClient(new SessionSettings(configFile.getAbsolutePath()), settings, messageBatcher,
+                eventBatcher, connectionIDs, sessionsEvents, settings.queueCapacity);
 
         configFile.deleteOnExit();
         resources.add(new Resources("client", fixClient::stop));
@@ -343,7 +352,12 @@ public class Main {
                     } catch (Exception ex) {
                         message = null;
                     }
-                    String parentEventID = MessageUtil.getParentEventID(message, rootEventID);
+                    String parentEventID = null;
+                    try {
+                        parentEventID = MessageUtil.getParentEventID(message, errorEventInitializer.get().getId());
+                    } catch (ConcurrentException ex) {
+                        LOGGER.error("Failed to get root error event id", ex);
+                    }
                     eventBatcher.onEvent(EventUtil.toEvent(parentEventID, "Failed to handle message group", e));
                 }
             });
@@ -392,7 +406,6 @@ public class Main {
         int autoStopAfter = 0;
         int queueCapacity = 10000;
         boolean zipDictionaries = false;
-        Integer threads = 2;
         Integer maxBatchSize = 100;
         Long maxFlushTime = 1000L;
         @JsonProperty(required = true)
@@ -468,14 +481,6 @@ public class Main {
 
         public void setZipDictionaries(boolean zipDictionaries) {
             this.zipDictionaries = zipDictionaries;
-        }
-
-        public Integer getThreads() {
-            return threads;
-        }
-
-        public void setThreads(Integer threads) {
-            this.threads = threads;
         }
 
         public Integer getMaxBatchSize() {
