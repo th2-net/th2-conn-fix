@@ -7,11 +7,10 @@ import com.exactpro.th2.fix.client.service.ClientApplication;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import quickfix.ConfigError;
-import quickfix.FileLogFactory;
-import quickfix.FileStoreFactory;
 import quickfix.LogFactory;
 import quickfix.MessageFactory;
 import quickfix.MessageStoreFactory;
+import quickfix.NoopStoreFactory;
 import quickfix.SessionID;
 import quickfix.SessionSettings;
 import quickfix.SocketInitiator;
@@ -31,8 +30,8 @@ public class FixClient {
                      Map<SessionID, ConnectionID> connections, Map<SessionID, String> sessionEvents, int queueCapacity) throws ConfigError {
 
         ClientApplication application = new ClientApplication(sessionsSettings);
-        MessageStoreFactory messageStoreFactory = new FileStoreFactory(settings);
-        LogFactory logFactory = new LogFactoryImpl(new FileLogFactory(settings), messageBatcher, eventBatcher, sessionEvents, connections);
+        MessageStoreFactory messageStoreFactory = new NoopStoreFactory();
+        LogFactory logFactory = new LogFactoryImpl(messageBatcher, eventBatcher, sessionEvents, connections);
         MessageFactory messageFactory = new FixMessageFactory();
         initiator = new SocketInitiator(application, messageStoreFactory, settings, logFactory, messageFactory, queueCapacity);
     }

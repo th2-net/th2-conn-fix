@@ -45,7 +45,6 @@ import quickfix.field.TradingSessionID;
 import quickfix.field.TransactTime;
 import quickfix.field.TrdType;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -71,7 +70,7 @@ public class MainTest extends Main {
         fixBean.setSenderCompID("client");
         fixBean.setTargetCompID("server");
         fixBean.setSocketConnectPort(9877L);
-        fixBean.setSessionAlias("client");
+        fixBean.setSessionAlias("client1");
         fixBean.setDataDictionary(Path.of("src/test/java/resources/FIX44.xml"));
         fixBean.setOrderingFields("true");
         fixBean.setStartTime("00:00:00 Europe/Moscow");
