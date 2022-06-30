@@ -14,6 +14,7 @@ import quickfix.FileStoreFactory;
 import quickfix.LogFactory;
 import quickfix.MessageFactory;
 import quickfix.MessageStoreFactory;
+import quickfix.RuntimeError;
 import quickfix.SessionID;
 import quickfix.SessionSettings;
 import quickfix.SocketInitiator;
@@ -39,12 +40,12 @@ public class FixClient {
         initiator = new SocketInitiator(application, messageStoreFactory, settings, logFactory, messageFactory, queueCapacity);
     }
 
-    public synchronized void start() {
+    public synchronized void start() throws RuntimeError {
         try {
             initiator.start();
             isRunning = true;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to start fix client", e);
+            throw new RuntimeError("Failed to start fix client", e);
         }
     }
 

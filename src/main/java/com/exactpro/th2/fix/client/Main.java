@@ -35,6 +35,7 @@ import quickfix.DataDictionary;
 import quickfix.IncorrectDataFormat;
 import quickfix.Message;
 import quickfix.MessageUtils;
+import quickfix.RuntimeError;
 import quickfix.Session;
 import quickfix.SessionID;
 import quickfix.SessionSettings;
@@ -179,6 +180,8 @@ public class Main {
 
         try {
             run(settings, messageRouter, eventRouter, grpcRouter, resources, factory.getBoxConfiguration().getBoxName());
+        } catch (RuntimeError e) {
+            LOGGER.error("Failed to start fix client", e);
         } catch (IncorrectDataFormat | CreatingConfigFileException e) {
             LOGGER.error("Error when using the config file", e);
         } catch (ConfigError e) {
@@ -218,7 +221,8 @@ public class Main {
     }
 
     public static void run(Settings settings, MessageRouter<MessageGroupBatch> messageRouter, MessageRouter<EventBatch> eventRouter,
-                           GrpcRouter grpcRouter, Deque<Resources> resources, String boxName) throws CreatingConfigFileException, ConfigError, IncorrectDataFormat {
+                           GrpcRouter grpcRouter, Deque<Resources> resources, String boxName) throws CreatingConfigFileException,
+            ConfigError, IncorrectDataFormat, RuntimeError {
 
         File configFile = FixBeanUtil.createConfig(settings);
 
