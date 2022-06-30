@@ -181,9 +181,9 @@ public class Main {
             run(settings, messageRouter, eventRouter, grpcRouter, resources, factory.getBoxConfiguration().getBoxName());
         } catch (IncorrectDataFormat | CreatingConfigFileException e) {
             LOGGER.error("Error when using the config file", e);
-            System.exit(1);
         } catch (ConfigError e) {
             LOGGER.error("Failed to load file with session settings", e);
+        } finally {
             System.exit(1);
         }
 

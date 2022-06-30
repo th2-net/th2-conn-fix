@@ -8,16 +8,23 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 import static com.exactpro.th2.fix.client.util.FixBeanUtil.addToConfig;
 import static com.exactpro.th2.fix.client.util.FixBeanUtil.requireNotNullOrBlank;
 import static com.exactpro.th2.fix.client.util.FixBeanUtil.convertFromBoolToYOrN;
+import static quickfix.FileLogFactory.SETTING_FILE_LOG_PATH;
+import static quickfix.FileLogFactory.SETTING_LOG_HEARTBEATS;
+import static quickfix.FileStoreFactory.SETTING_FILE_STORE_PATH;
+import static quickfix.Initiator.SETTING_RECONNECT_INTERVAL;
+import static quickfix.Initiator.SETTING_SOCKET_CONNECT_HOST;
+import static quickfix.Initiator.SETTING_SOCKET_CONNECT_PORT;
 import static quickfix.Session.*;
+import static quickfix.SessionFactory.SETTING_CONNECTION_TYPE;
 import static quickfix.SessionSettings.BEGINSTRING;
 import static quickfix.SessionSettings.TARGETCOMPID;
 import static quickfix.SessionSettings.TARGETLOCID;
 import static quickfix.SessionSettings.TARGETSUBID;
-import static quickfix.mina.ssl.SSLSupport.*;
-import static quickfix.FileLogFactory.*;
-import static quickfix.FileStoreFactory.*;
-import static quickfix.SessionFactory.*;
-import static quickfix.Initiator.*;
+import static quickfix.mina.ssl.SSLSupport.SETTING_CIPHER_SUITES;
+import static quickfix.mina.ssl.SSLSupport.SETTING_ENABLED_PROTOCOLS;
+import static quickfix.mina.ssl.SSLSupport.SETTING_KEY_STORE_NAME;
+import static quickfix.mina.ssl.SSLSupport.SETTING_KEY_STORE_PWD;
+import static quickfix.mina.ssl.SSLSupport.SETTING_USE_SSL;
 
 public class BaseFixBean {
 

@@ -44,7 +44,7 @@ public class FixClient {
             initiator.start();
             isRunning = true;
         } catch (Exception e) {
-            LOGGER.error("Failed to start client", e);
+            throw new RuntimeException("Failed to start fix client", e);
         }
     }
 
