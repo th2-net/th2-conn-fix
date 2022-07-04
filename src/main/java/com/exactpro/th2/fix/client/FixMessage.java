@@ -3,12 +3,9 @@ package com.exactpro.th2.fix.client;
 import com.exactpro.th2.common.grpc.EventID;
 import org.apache.mina.util.ExpiringMap;
 import quickfix.DataDictionary;
-import quickfix.Field;
 import quickfix.FieldMap;
 import quickfix.InvalidMessage;
 import quickfix.Message;
-
-import java.util.TreeMap;
 
 public class FixMessage extends Message {
 
@@ -18,7 +15,6 @@ public class FixMessage extends Message {
     protected final FixHeader header;
     protected final FixTrailer trailer;
     protected EventID parentEventID;
-    protected TreeMap<Integer, Field<?>> fields;
 
     static {
         MESSAGE_PARENT_EVENT_IDS.getExpirer().startExpiringIfNotStarted();
