@@ -34,7 +34,6 @@ import org.slf4j.LoggerFactory;
 import quickfix.ConfigError;
 import quickfix.DataDictionary;
 import quickfix.IncorrectDataFormat;
-import quickfix.Message;
 import quickfix.MessageUtils;
 import quickfix.Session;
 import quickfix.SessionID;
@@ -224,16 +223,15 @@ public class Main {
 
         File configFile = FixBeanUtil.createConfig(settings);
 
-        Map<SessionID, ConnectionID> connectionIDs = new HashMap<>();
+        Map<SessionID, ConnectionID> connectionIds = new HashMap<>();
         Map<String, SessionID> sessionIDs = settings.getSessionIDsByAliases();
 
         sessionIDs.forEach((sessionAlias, sessionId) -> {
-            connectionIDs.put(sessionId, ConnectionID.newBuilder().setSessionAlias(sessionAlias).build());
+            connectionIds.put(sessionId, ConnectionID.newBuilder().setSessionAlias(sessionAlias).build());
         });
 
         Event rootEvent = MessageRouterUtils.storeEvent(eventRouter, Event.start()
-                        .description("Root event")
-                        .name(boxName + " " + Instant.now())
+                        .name("Sessions events " + Instant.now())
                         .type("Microservice")
                         .bodyData(FixBeanUtil.getSessionTable(settings.getSessionSettings()))
                 , null);
@@ -280,7 +278,7 @@ public class Main {
         });
 
         FixClient fixClient = new FixClient(new SessionSettings(configFile.getAbsolutePath()), settings, messageBatcher,
-                eventBatcher, connectionIDs, sessionsEvents, settings.queueCapacity);
+                eventBatcher, connectionIds, sessionsEvents, settings.queueCapacity);
 
         configFile.deleteOnExit();
         resources.add(new Resources("client", fixClient::stop));
@@ -314,6 +312,8 @@ public class Main {
                         FixBean sessionSettings = FixBeanUtil.getSessionSettingsBySessionAlias(settings.getSessionSettings(), sessionAlias);
                         Objects.requireNonNull(sessionSettings, "Unknown session alias + " + sessionAlias);
 
+                        FixMessage fixMessage;
+                        FixMessageFactory messageFactory = (FixMessageFactory) session.getMessageFactory();
                         DataDictionary dataDictionary;
                         DataDictionary sessionDataDictionary;
                         if (sessionID.isFIXT()) {
@@ -328,18 +328,18 @@ public class Main {
                             sessionDataDictionary = dataDictionary;
                         }
 
-                        Message fixMessage;
                         if (sessionSettings.getOrderingFields() != null && sessionSettings.getOrderingFields().equals(YES_SETTING)) {
-
-                            FixMessageFactory messageFactory = (FixMessageFactory) session.getMessageFactory();
-                            fixMessage = messageFactory.create(sessionID.getBeginString(), MessageUtils.getMessageType(strMessage), dataDictionary.getOrderedFields());
+                            fixMessage = messageFactory.create(MessageUtils.getMessageType(strMessage), dataDictionary.getOrderedFields());
                             fixMessage.fromString(strMessage, sessionDataDictionary, dataDictionary, true);
                         } else {
-                            fixMessage = MessageUtils.parse(session, strMessage);
+                            fixMessage = new FixMessage(strMessage, sessionDataDictionary, dataDictionary);
                         }
 
-                        FixMessage fixMessage1 = new FixMessage(fixMessage, message.getRawMessage().getParentEventId());
-                        if (!session.send(fixMessage1)) {
+                        if (!message.getRawMessage().getParentEventId().getId().equals("")) {
+                            fixMessage.setParentEventID(message.getRawMessage().getParentEventId());
+                        }
+
+                        if (!session.send(fixMessage)) {
                             throw new IllegalStateException("Message not sent. Message was not queued for transmission to the counterparty");
                         }
                     }
@@ -483,19 +483,19 @@ public class Main {
             this.zipDictionaries = zipDictionaries;
         }
 
-        public Integer getMaxBatchSize() {
+        public int getMaxBatchSize() {
             return maxBatchSize;
         }
 
-        public void setMaxBatchSize(Integer maxBatchSize) {
+        public void setMaxBatchSize(int maxBatchSize) {
             this.maxBatchSize = maxBatchSize;
         }
 
-        public Long getMaxFlushTime() {
+        public long getMaxFlushTime() {
             return maxFlushTime;
         }
 
-        public void setMaxFlushTime(Long maxFlushTime) {
+        public void setMaxFlushTime(long maxFlushTime) {
             this.maxFlushTime = maxFlushTime;
         }
 

@@ -13,21 +13,22 @@ import java.util.Objects;
 public class LogFactoryImpl implements LogFactory {
 
     private final EventBatcher eventBatcher;
-    private final Map<SessionID, ConnectionID> connections;
+    private final Map<SessionID, ConnectionID> connectionIds;
     private final Map<SessionID, String> sessionsEvents;
     private final MessageBatcher messageBatcher;
 
     public LogFactoryImpl(MessageBatcher messageBatcher, EventBatcher eventBatcher,
-                          Map<SessionID, String> sessionsEvents, Map<SessionID, ConnectionID> connections) {
+                          Map<SessionID, String> sessionsEvents, Map<SessionID, ConnectionID> connectionIds) {
         this.eventBatcher = eventBatcher;
-        this.connections = connections;
+        this.connectionIds = connectionIds;
         this.sessionsEvents = sessionsEvents;
         this.messageBatcher = messageBatcher;
     }
 
     @Override
     public Log create(SessionID sessionID) {
-        ConnectionID connectionID = Objects.requireNonNull(connections.get(sessionID), () -> "Unknown session ID: " + sessionID);
+        ConnectionID connectionID = Objects.requireNonNull(connectionIds.get(sessionID), () -> "Unknown session ID: " + sessionID);
         return new LogImpl(messageBatcher, eventBatcher, connectionID, sessionsEvents.get(sessionID));
     }
+
 }

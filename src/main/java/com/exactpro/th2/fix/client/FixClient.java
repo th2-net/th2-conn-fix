@@ -27,11 +27,11 @@ public class FixClient {
 
 
     public FixClient(SessionSettings settings, Main.Settings sessionsSettings, MessageBatcher messageBatcher, EventBatcher eventBatcher,
-                     Map<SessionID, ConnectionID> connections, Map<SessionID, String> sessionEvents, int queueCapacity) throws ConfigError {
+                     Map<SessionID, ConnectionID> connectionIds, Map<SessionID, String> sessionEvents, int queueCapacity) throws ConfigError {
 
         ClientApplication application = new ClientApplication(sessionsSettings);
         MessageStoreFactory messageStoreFactory = new NoopStoreFactory();
-        LogFactory logFactory = new LogFactoryImpl(messageBatcher, eventBatcher, sessionEvents, connections);
+        LogFactory logFactory = new LogFactoryImpl(messageBatcher, eventBatcher, sessionEvents, connectionIds);
         MessageFactory messageFactory = new FixMessageFactory();
         initiator = new SocketInitiator(application, messageStoreFactory, settings, logFactory, messageFactory, queueCapacity);
     }

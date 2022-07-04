@@ -40,7 +40,8 @@ public class LogImpl implements Log {
     }
 
     @Override
-    public void clear() {}
+    public void clear() {
+    }
 
     @Override
     public void onIncoming(String message) {
@@ -86,7 +87,7 @@ public class LogImpl implements Log {
         RawMessage rawMessage = MessageUtil.toRawMessage(message.getBytes(), connectionID, direction, sequence.get());
         messageBatcher.onMessage(rawMessage, direction);
 
-        String parentEventID = FixMessage.getParentEventIDs().get(message) == null ? parentEventId : FixMessage.getParentEventIDs().get(message).getId();
+        String parentEventID = FixMessage.getMessageParentEventId(message) == null ? parentEventId : FixMessage.getMessageParentEventId(message).getId();
         eventBatcher.onEvent(EventUtil.toEvent(rawMessage, parentEventID, "Message successfully sent"));
     }
 
