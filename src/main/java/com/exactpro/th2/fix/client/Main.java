@@ -11,16 +11,20 @@ import com.exactpro.th2.common.schema.message.MessageListener;
 import com.exactpro.th2.common.schema.message.MessageRouter;
 import com.exactpro.th2.common.schema.message.MessageRouterUtils;
 import com.exactpro.th2.common.schema.message.SubscriberMonitor;
+import com.exactpro.th2.common.utils.event.EventBatcher;
+import com.exactpro.th2.common.utils.event.MessageBatcher;
 import com.exactpro.th2.fix.client.exceptions.CreatingConfigFileException;
 import com.exactpro.th2.fix.client.exceptions.IncorrectFixFileNameException;
 import com.exactpro.th2.fix.client.fixBean.BaseFixBean;
 import com.exactpro.th2.fix.client.fixBean.FixBean;
 import com.exactpro.th2.fix.client.impl.Destructor;
+import com.exactpro.th2.fix.client.util.EventUtil;
 import com.exactpro.th2.fix.client.util.FixBeanUtil;
 import com.exactpro.th2.fix.client.util.MessageUtil;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import kotlin.Unit;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.commons.lang3.concurrent.ConcurrentException;
@@ -30,7 +34,6 @@ import org.slf4j.LoggerFactory;
 import quickfix.ConfigError;
 import quickfix.DataDictionary;
 import quickfix.IncorrectDataFormat;
-import quickfix.Message;
 import quickfix.MessageUtils;
 import quickfix.Session;
 import quickfix.SessionID;
@@ -52,18 +55,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import static com.exactpro.th2.common.message.MessageUtils.toJson;
+import static com.exactpro.th2.common.schema.message.QueueAttribute.EVENT;
+import static com.exactpro.th2.common.schema.message.QueueAttribute.PUBLISH;
 
 public class Main {
 
     private static final String INPUT_QUEUE_ATTRIBUTE = "send";
     private static final String YES_SETTING = "Y";
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
+    private static final int THREADS_FOR_MESSAGES_AND_EVENTS_BATCHER = 2;
 
     public static class Resources {
         private final String name;
@@ -216,11 +223,11 @@ public class Main {
 
         File configFile = FixBeanUtil.createConfig(settings);
 
-        Map<SessionID, ConnectionID> connectionIDs = new HashMap<>();
+        Map<SessionID, ConnectionID> connectionIds = new HashMap<>();
         Map<String, SessionID> sessionIDs = settings.getSessionIDsByAliases();
 
         sessionIDs.forEach((sessionAlias, sessionId) -> {
-            connectionIDs.put(sessionId, ConnectionID.newBuilder().setSessionAlias(sessionAlias).build());
+            connectionIds.put(sessionId, ConnectionID.newBuilder().setSessionAlias(sessionAlias).build());
         });
 
         Event rootEvent = MessageRouterUtils.storeEvent(eventRouter, Event.start()
@@ -240,8 +247,38 @@ public class Main {
             }
         };
 
-        FixClient fixClient = new FixClient(new SessionSettings(configFile.getAbsolutePath()), settings,
-                messageRouter, eventRouter, connectionIDs, rootEventID, settings.queueCapacity);
+        Map<SessionID, String> sessionsEvents = new HashMap<>();
+        sessionIDs.forEach((sessionAlias, sessionID) -> {
+            String eventName = "Fix client " + sessionAlias + " " + Instant.now();
+            Event event = MessageRouterUtils.storeEvent(eventRouter, rootEventID, eventName, "Microservice", null);
+            sessionsEvents.put(sessionID, event.getId());
+        });
+
+        ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(THREADS_FOR_MESSAGES_AND_EVENTS_BATCHER);
+        resources.add(new Resources("executor", executor::shutdown));
+
+        MessageBatcher messageBatcher = new MessageBatcher(settings.maxBatchSize, settings.maxFlushTime, executor, (batch, direction) -> {
+            try {
+                messageRouter.send(batch, direction.name());
+            } catch (IOException e) {
+                LOGGER.error("Failed to send message batch.", e);
+            }
+            return Unit.INSTANCE;
+        }, (e) -> {
+            throw new IllegalStateException("Failed to send messages.", e);
+        });
+
+        EventBatcher eventBatcher = new EventBatcher(settings.maxBatchSize, settings.maxFlushTime, executor, eventBatch -> {
+            try {
+                eventRouter.sendAll(eventBatch, PUBLISH.getValue(), EVENT.getValue());
+            } catch (IOException e) {
+                LOGGER.error("Failed to send event batch: {}", e.getMessage());
+            }
+            return Unit.INSTANCE;
+        });
+
+        FixClient fixClient = new FixClient(new SessionSettings(configFile.getAbsolutePath()), settings, messageBatcher,
+                eventBatcher, connectionIds, sessionsEvents, settings.queueCapacity);
 
         configFile.deleteOnExit();
         resources.add(new Resources("client", fixClient::stop));
@@ -253,14 +290,13 @@ public class Main {
             if (!controller.isRunning()) controller.start(settings.autoStopAfter);
 
             groupBatch.getGroupsList().forEach((group) -> {
-                AnyMessage message = null;
                 try {
                     if (group.getMessagesCount() != 1) {
                         if (LOGGER.isErrorEnabled()) {
                             LOGGER.error("Message group contains more or less than 1 message {} ", toJson(group));
                         }
                     } else {
-                        message = group.getMessagesList().get(0);
+                        AnyMessage message = group.getMessagesList().get(0);
                         if (!message.hasRawMessage()) {
                             if (LOGGER.isErrorEnabled()) {
                                 LOGGER.error("Message in the group is not a raw message {} ", toJson(message));
@@ -298,7 +334,6 @@ public class Main {
                         } else {
                             fixMessage = new FixMessage(strMessage, sessionDataDictionary, dataDictionary);
                         }
-                        dataDictionary.validate(fixMessage, true);
 
                         if (!message.getRawMessage().getParentEventId().getId().equals("")) {
                             fixMessage.setParentEventID(message.getRawMessage().getParentEventId());
@@ -310,12 +345,20 @@ public class Main {
                     }
                 } catch (Exception e) {
                     LOGGER.error("Failed to handle message group: {}", toJson(group), e);
+
+                    AnyMessage message;
                     try {
-                        MessageRouterUtils.storeEvent(eventRouter, MessageUtil.getEvent(message, "Failed to handle message group", e),
-                                MessageUtil.getParentEventID(message, errorEventInitializer.get().getId()));
+                        message = group.getMessagesList().get(0);
+                    } catch (Exception ex) {
+                        message = null;
+                    }
+                    String parentEventID = null;
+                    try {
+                        parentEventID = MessageUtil.getParentEventID(message, errorEventInitializer.get().getId());
                     } catch (ConcurrentException ex) {
                         LOGGER.error("Failed to get root error event id", ex);
                     }
+                    eventBatcher.onEvent(EventUtil.toEvent(parentEventID, "Failed to handle message group", e));
                 }
             });
         };
@@ -363,6 +406,8 @@ public class Main {
         int autoStopAfter = 0;
         int queueCapacity = 10000;
         boolean zipDictionaries = false;
+        Integer maxBatchSize = 100;
+        Long maxFlushTime = 1000L;
         @JsonProperty(required = true)
         List<FixBean> sessionSettings = new ArrayList<>();
         @JsonIgnore
@@ -436,6 +481,22 @@ public class Main {
 
         public void setZipDictionaries(boolean zipDictionaries) {
             this.zipDictionaries = zipDictionaries;
+        }
+
+        public Integer getMaxBatchSize() {
+            return maxBatchSize;
+        }
+
+        public void setMaxBatchSize(Integer maxBatchSize) {
+            this.maxBatchSize = maxBatchSize;
+        }
+
+        public Long getMaxFlushTime() {
+            return maxFlushTime;
+        }
+
+        public void setMaxFlushTime(Long maxFlushTime) {
+            this.maxFlushTime = maxFlushTime;
         }
 
         @Override
