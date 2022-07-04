@@ -46,9 +46,6 @@ public class FixBean extends BaseFixBean {
     protected String senderCompID = null;
     protected String senderSubID = null;
     protected String senderLocationID = null;
-    protected Path dataDictionary = null;
-    protected Path appDataDictionary = null;
-    protected Path transportDataDictionary = null;
     protected String sessionAlias = null;
     protected String username = null;
     protected String password = null;
@@ -133,10 +130,6 @@ public class FixBean extends BaseFixBean {
         this.senderCompID = requireNotNullOrBlank(SENDERCOMPID, senderCompID);
     }
 
-    public void setDataDictionary(Path dataDictionary) {
-        this.dataDictionary = Path.of(requireNotNullOrBlank(SETTING_DATA_DICTIONARY, dataDictionary.toString()));
-    }
-
     public void setSessionAlias(String sessionAlias) {
         this.sessionAlias = requireNotNullOrBlank("SessionAlias", sessionAlias);
     }
@@ -147,14 +140,6 @@ public class FixBean extends BaseFixBean {
 
     public void setSenderLocationID(String senderLocationID) {
         this.senderLocationID = requireNotNullOrBlank(SENDERLOCID, senderLocationID);
-    }
-
-    public void setAppDataDictionary(Path appDataDictionary) {
-        this.appDataDictionary = Path.of(requireNotNullOrBlank(SETTING_APP_DATA_DICTIONARY, appDataDictionary.toString()));
-    }
-
-    public void setTransportDataDictionary(Path transportDataDictionary) {
-        this.transportDataDictionary = Path.of(requireNotNullOrBlank(SETTING_TRANSPORT_DATA_DICTIONARY, transportDataDictionary.toString()));
     }
 
     public void setUsername(String username) {
@@ -240,16 +225,8 @@ public class FixBean extends BaseFixBean {
         return newPassword;
     }
 
-    public Path getTransportDataDictionary() {
-        return transportDataDictionary;
-    }
-
     public String getSessionAlias() {
         return sessionAlias;
-    }
-
-    public Path getAppDataDictionary() {
-        return appDataDictionary;
     }
 
     public String getSenderSubID() {
@@ -258,10 +235,6 @@ public class FixBean extends BaseFixBean {
 
     public String getSenderLocationID() {
         return senderLocationID;
-    }
-
-    public Path getDataDictionary() {
-        return dataDictionary;
     }
 
     public String getSenderCompID() {
@@ -275,9 +248,6 @@ public class FixBean extends BaseFixBean {
                 .append(SENDERCOMPID, senderCompID)
                 .append(SENDERSUBID, senderSubID)
                 .append(SENDERLOCID, senderLocationID)
-                .append(SETTING_DATA_DICTIONARY, dataDictionary)
-                .append(SETTING_APP_DATA_DICTIONARY, appDataDictionary)
-                .append(SETTING_TRANSPORT_DATA_DICTIONARY, transportDataDictionary)
                 .append("SessionAlias", sessionAlias)
                 .append(SETTING_LOGON_TAG, username)
                 .append(SETTING_LOGON_TAG + 1, password)

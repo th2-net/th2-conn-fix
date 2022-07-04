@@ -2,34 +2,34 @@ package com.exactpro.th2.fix.client;
 
 import com.exactpro.th2.common.grpc.EventID;
 import org.apache.mina.util.ExpiringMap;
+import quickfix.DataDictionary;
 import quickfix.FieldMap;
+import quickfix.InvalidMessage;
 import quickfix.Message;
 
 public class FixMessage extends Message {
 
-    public static final int DEFAULT_TIME_TO_LIVE = 30;
+    public static final int DEFAULT_TIME_TO_LIVE_SECONDS = 30;
+    private static final ExpiringMap<String, EventID> MESSAGE_PARENT_EVENT_IDS = new ExpiringMap<>(DEFAULT_TIME_TO_LIVE_SECONDS);
 
     protected final FixHeader header;
     protected final FixTrailer trailer;
     protected EventID parentEventID;
-    public static ExpiringMap<String, EventID> parentEventIDs = new ExpiringMap<>(DEFAULT_TIME_TO_LIVE);
+
+    static {
+        MESSAGE_PARENT_EVENT_IDS.getExpirer().startExpiringIfNotStarted();
+    }
+
+    public FixMessage(String strMessage, DataDictionary sessionDataDictionary, DataDictionary dataDictionary) throws InvalidMessage {
+        this.header = new FixHeader();
+        this.trailer = new FixTrailer();
+        this.fromString(strMessage, sessionDataDictionary, dataDictionary, true);
+    }
 
     public FixMessage(int[] fieldOrderBody, int[] fieldOrderHeader, int[] fieldOrderTrailer) {
         super(fieldOrderBody);
         super.header = this.header = new FixHeader(fieldOrderHeader);
         super.trailer = this.trailer = new FixTrailer(fieldOrderTrailer);
-        parentEventIDs.getExpirer().startExpiringIfNotStarted();
-    }
-
-    public FixMessage(Message message, EventID parentEventID) {
-        super(message.getFieldOrder());
-        super.header = this.header = new FixHeader(message.getHeader().getFieldOrder());
-        super.trailer = this.trailer = new FixTrailer(message.getTrailer().getFieldOrder());
-        initializeFrom(message);
-        this.header.initializeFrom(message.getHeader());
-        this.trailer.initializeFrom(message.getTrailer());
-        this.parentEventID = parentEventID;
-        parentEventIDs.getExpirer().startExpiringIfNotStarted();
     }
 
     @Override
@@ -38,30 +38,25 @@ public class FixMessage extends Message {
         message.initializeFrom(this);
         message.getFixHeader().initializeFrom(getHeader());
         message.getFixTrailer().initializeFrom(getTrailer());
+        message.parentEventID = this.parentEventID;
         return message;
     }
 
-    public EventID getParentEventID() {
-        return parentEventID;
+    public static EventID getMessageParentEventId(String message) {
+        return MESSAGE_PARENT_EVENT_IDS.get(message);
     }
 
     public void setParentEventID(EventID parentEventID) {
         this.parentEventID = parentEventID;
     }
 
-    public static ExpiringMap<String, EventID> getParentEventIDs() {
-        return parentEventIDs;
-    }
-
-    public static void setParentEventIDs(ExpiringMap<String, EventID> parentEventIDs) {
-        FixMessage.parentEventIDs = parentEventIDs;
-    }
-
     @Override
     public String toString() {
 
         String res = super.toString();
-        parentEventIDs.put(res, parentEventID);
+        if (parentEventID != null && !parentEventID.getId().equals("")) {
+            MESSAGE_PARENT_EVENT_IDS.putIfAbsent(res, parentEventID);
+        }
         return res;
     }
 
@@ -73,7 +68,11 @@ public class FixMessage extends Message {
         return trailer;
     }
 
-    private final class FixHeader extends Header{
+    private static final class FixHeader extends Header {
+
+        public FixHeader() {
+        }
+
         public FixHeader(int[] fieldOrder) {
             super(fieldOrder);
         }
@@ -89,7 +88,11 @@ public class FixMessage extends Message {
         }
     }
 
-    private final class FixTrailer extends Trailer{
+    private static final class FixTrailer extends Trailer {
+
+        public FixTrailer() {
+        }
+
         public FixTrailer(int[] fieldOrder) {
             super(fieldOrder);
         }

@@ -5,6 +5,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
+import java.nio.file.Path;
+
 import static com.exactpro.th2.fix.client.util.FixBeanUtil.addToConfig;
 import static com.exactpro.th2.fix.client.util.FixBeanUtil.requireNotNullOrBlank;
 import static com.exactpro.th2.fix.client.util.FixBeanUtil.convertFromBoolToYOrN;
@@ -79,6 +81,9 @@ public class BaseFixBean {
     protected String targetLocationID = null;
     protected String defaultApplVerID = null;
     protected String encryptPassword = null;
+    protected Path dataDictionary = null;
+    protected Path appDataDictionary = null;
+    protected Path transportDataDictionary = null;
     public BaseFixBean() {
     }
 
@@ -132,6 +137,9 @@ public class BaseFixBean {
         addToConfig(TARGETSUBID, targetSubID, stringBuilder);
         addToConfig(TARGETLOCID, targetLocationID, stringBuilder);
         addToConfig(SETTING_DEFAULT_APPL_VER_ID, defaultApplVerID, stringBuilder);
+        addToConfig(SETTING_DATA_DICTIONARY, dataDictionary, stringBuilder);
+        addToConfig(SETTING_APP_DATA_DICTIONARY, appDataDictionary, stringBuilder);
+        addToConfig(SETTING_TRANSPORT_DATA_DICTIONARY, transportDataDictionary, stringBuilder);
         return stringBuilder;
     }
 
@@ -594,6 +602,30 @@ public class BaseFixBean {
         return autorelogin;
     }
 
+    public Path getDataDictionary() {
+        return dataDictionary;
+    }
+
+    public void setDataDictionary(Path dataDictionary) {
+        this.dataDictionary = Path.of(requireNotNullOrBlank(SETTING_DATA_DICTIONARY, dataDictionary.toString()));
+    }
+
+    public Path getAppDataDictionary() {
+        return appDataDictionary;
+    }
+
+    public void setAppDataDictionary(Path appDataDictionary) {
+        this.appDataDictionary = Path.of(requireNotNullOrBlank(SETTING_APP_DATA_DICTIONARY, appDataDictionary.toString()));
+    }
+
+    public Path getTransportDataDictionary() {
+        return transportDataDictionary;
+    }
+
+    public void setTransportDataDictionary(Path transportDataDictionary) {
+        this.transportDataDictionary = Path.of(requireNotNullOrBlank(SETTING_TRANSPORT_DATA_DICTIONARY, transportDataDictionary.toString()));
+    }
+
     @Override
     public String toString() {
         return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE)
@@ -645,6 +677,9 @@ public class BaseFixBean {
                 .append(SETTING_VALIDATE_FIELDS_OUT_OF_RANGE, validateFieldsOutOfRange)
                 .append(SETTING_DUPLICATE_TAGS_ALLOWED, duplicateTagsAllowed)
                 .append(SETTING_IGNORE_ABSENCE_OF_141_TAG, ignoreAbsenceOf141tag)
+                .append(SETTING_DATA_DICTIONARY, dataDictionary)
+                .append(SETTING_APP_DATA_DICTIONARY, appDataDictionary)
+                .append(SETTING_TRANSPORT_DATA_DICTIONARY, transportDataDictionary)
                 .append("FakeResendRequest", fakeResendRequest)
                 .append("OrderingFields", orderingFields)
                 .append("Autorelogine", autorelogin)
