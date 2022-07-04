@@ -4,17 +4,44 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
-import java.nio.file.Path;
-
 import static com.exactpro.th2.fix.client.util.FixBeanUtil.addToConfig;
 import static com.exactpro.th2.fix.client.util.FixBeanUtil.requireNotNullOrBlank;
-import static quickfix.FileLogFactory.SETTING_FILE_LOG_PATH;
 import static quickfix.FileLogFactory.SETTING_LOG_HEARTBEATS;
-import static quickfix.FileStoreFactory.SETTING_FILE_STORE_PATH;
 import static quickfix.Initiator.SETTING_RECONNECT_INTERVAL;
 import static quickfix.Initiator.SETTING_SOCKET_CONNECT_HOST;
 import static quickfix.Initiator.SETTING_SOCKET_CONNECT_PORT;
-import static quickfix.Session.*;
+import static quickfix.Session.SETTING_ALLOW_UNKNOWN_MSG_FIELDS;
+import static quickfix.Session.SETTING_APP_DATA_DICTIONARY;
+import static quickfix.Session.SETTING_CHECK_LATENCY;
+import static quickfix.Session.SETTING_CHECK_REQUIRED_TAGS;
+import static quickfix.Session.SETTING_DATA_DICTIONARY;
+import static quickfix.Session.SETTING_DEFAULT_APPL_VER_ID;
+import static quickfix.Session.SETTING_ENABLE_NEXT_EXPECTED_MSG_SEQ_NUM;
+import static quickfix.Session.SETTING_END_DAY;
+import static quickfix.Session.SETTING_END_TIME;
+import static quickfix.Session.SETTING_HEARTBTINT;
+import static quickfix.Session.SETTING_LOGON_TAG;
+import static quickfix.Session.SETTING_LOGON_TIMEOUT;
+import static quickfix.Session.SETTING_LOGOUT_TIMEOUT;
+import static quickfix.Session.SETTING_MAX_LATENCY;
+import static quickfix.Session.SETTING_NON_STOP_SESSION;
+import static quickfix.Session.SETTING_REFRESH_ON_LOGON;
+import static quickfix.Session.SETTING_REJECT_INVALID_MESSAGE;
+import static quickfix.Session.SETTING_REQUIRES_ORIG_SENDING_TIME;
+import static quickfix.Session.SETTING_RESET_ON_DISCONNECT;
+import static quickfix.Session.SETTING_RESET_ON_LOGON;
+import static quickfix.Session.SETTING_RESET_ON_LOGOUT;
+import static quickfix.Session.SETTING_START_DAY;
+import static quickfix.Session.SETTING_START_TIME;
+import static quickfix.Session.SETTING_TIMESTAMP_PRECISION;
+import static quickfix.Session.SETTING_TIMEZONE;
+import static quickfix.Session.SETTING_TRANSPORT_DATA_DICTIONARY;
+import static quickfix.Session.SETTING_USE_DATA_DICTIONARY;
+import static quickfix.Session.SETTING_VALIDATE_FIELDS_HAVE_VALUES;
+import static quickfix.Session.SETTING_VALIDATE_FIELDS_OUT_OF_ORDER;
+import static quickfix.Session.SETTING_VALIDATE_INCOMING_MESSAGE;
+import static quickfix.Session.SETTING_VALIDATE_SEQUENCE_NUMBERS;
+import static quickfix.Session.SETTING_VALIDATE_USER_DEFINED_FIELDS;
 import static quickfix.SessionSettings.BEGINSTRING;
 import static quickfix.SessionSettings.SENDERCOMPID;
 import static quickfix.SessionSettings.SENDERLOCID;
@@ -46,9 +73,6 @@ public class FixBean extends BaseFixBean {
     protected String senderCompID = null;
     protected String senderSubID = null;
     protected String senderLocationID = null;
-    protected Path dataDictionary = null;
-    protected Path appDataDictionary = null;
-    protected Path transportDataDictionary = null;
     protected String sessionAlias = null;
     protected String username = null;
     protected String password = null;
@@ -77,7 +101,7 @@ public class FixBean extends BaseFixBean {
         addToConfig(SETTING_DEFAULT_APPL_VER_ID, defaultApplVerID, stringBuilder);
         addToConfig(SETTING_START_TIME, startTime, stringBuilder);
         addToConfig(SETTING_END_TIME, endTime, stringBuilder);
-        addToConfig(SETTING_START_DAY, startDay,stringBuilder);
+        addToConfig(SETTING_START_DAY, startDay, stringBuilder);
         addToConfig(SETTING_END_DAY, endDay, stringBuilder);
         addToConfig(getSettingLogonTag(username), LOGON_TAG_USERNAME + username, stringBuilder);
         addToConfig(getSettingLogonTag(password), LOGON_TAG_PASSWORD + password, stringBuilder);
@@ -87,8 +111,6 @@ public class FixBean extends BaseFixBean {
         addToConfig(SETTING_REQUIRES_ORIG_SENDING_TIME, requiresOrigSendingTime, stringBuilder);
         addToConfig(SETTING_TIMEZONE, timeZone, stringBuilder);
         addToConfig(SETTING_NON_STOP_SESSION, nonStopSession, stringBuilder);
-        addToConfig(SETTING_FILE_STORE_PATH, fileStorePath, stringBuilder);
-        addToConfig(SETTING_FILE_LOG_PATH, fileLogPath, stringBuilder);
         addToConfig(SETTING_RECONNECT_INTERVAL, reconnectInterval, stringBuilder);
         addToConfig(SETTING_HEARTBTINT, heartBtInt, stringBuilder);
         addToConfig(SETTING_VALIDATE_USER_DEFINED_FIELDS, validateUserDefinedFields, stringBuilder);
@@ -117,8 +139,8 @@ public class FixBean extends BaseFixBean {
         return stringBuilder;
     }
 
-    private String getSettingLogonTag(String value){
-        if (value == null || value.isEmpty()){
+    private String getSettingLogonTag(String value) {
+        if (value == null || value.isEmpty()) {
             return null;
         }
         String logonTag = SETTING_LOGON_TAG;
@@ -133,10 +155,6 @@ public class FixBean extends BaseFixBean {
         this.senderCompID = requireNotNullOrBlank(SENDERCOMPID, senderCompID);
     }
 
-    public void setDataDictionary(Path dataDictionary) {
-        this.dataDictionary = Path.of(requireNotNullOrBlank(SETTING_DATA_DICTIONARY, dataDictionary.toString()));
-    }
-
     public void setSessionAlias(String sessionAlias) {
         this.sessionAlias = requireNotNullOrBlank("SessionAlias", sessionAlias);
     }
@@ -147,14 +165,6 @@ public class FixBean extends BaseFixBean {
 
     public void setSenderLocationID(String senderLocationID) {
         this.senderLocationID = requireNotNullOrBlank(SENDERLOCID, senderLocationID);
-    }
-
-    public void setAppDataDictionary(Path appDataDictionary) {
-        this.appDataDictionary = Path.of(requireNotNullOrBlank(SETTING_APP_DATA_DICTIONARY, appDataDictionary.toString()));
-    }
-
-    public void setTransportDataDictionary(Path transportDataDictionary) {
-        this.transportDataDictionary = Path.of(requireNotNullOrBlank(SETTING_TRANSPORT_DATA_DICTIONARY, transportDataDictionary.toString()));
     }
 
     public void setUsername(String username) {
@@ -178,14 +188,14 @@ public class FixBean extends BaseFixBean {
     }
 
     public void setSeqNumSender(int seqNumSender) {
-        if (seqNumSender < 0){
+        if (seqNumSender < 0) {
             throw new IllegalArgumentException("seqNumSender must not be negative");
         }
         this.seqNumSender = seqNumSender;
     }
 
     public void setSeqNumTarget(int seqNumTarget) {
-        if (seqNumTarget < 0){
+        if (seqNumTarget < 0) {
             throw new IllegalArgumentException("seqNumTarget must not be negative");
         }
         this.seqNumTarget = seqNumTarget;
@@ -240,16 +250,8 @@ public class FixBean extends BaseFixBean {
         return newPassword;
     }
 
-    public Path getTransportDataDictionary() {
-        return transportDataDictionary;
-    }
-
     public String getSessionAlias() {
         return sessionAlias;
-    }
-
-    public Path getAppDataDictionary() {
-        return appDataDictionary;
     }
 
     public String getSenderSubID() {
@@ -258,10 +260,6 @@ public class FixBean extends BaseFixBean {
 
     public String getSenderLocationID() {
         return senderLocationID;
-    }
-
-    public Path getDataDictionary() {
-        return dataDictionary;
     }
 
     public String getSenderCompID() {
@@ -275,9 +273,6 @@ public class FixBean extends BaseFixBean {
                 .append(SENDERCOMPID, senderCompID)
                 .append(SENDERSUBID, senderSubID)
                 .append(SENDERLOCID, senderLocationID)
-                .append(SETTING_DATA_DICTIONARY, dataDictionary)
-                .append(SETTING_APP_DATA_DICTIONARY, appDataDictionary)
-                .append(SETTING_TRANSPORT_DATA_DICTIONARY, transportDataDictionary)
                 .append("SessionAlias", sessionAlias)
                 .append(SETTING_LOGON_TAG, username)
                 .append(SETTING_LOGON_TAG + 1, password)

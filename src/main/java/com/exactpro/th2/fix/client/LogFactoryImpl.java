@@ -1,47 +1,34 @@
 package com.exactpro.th2.fix.client;
 
-import com.exactpro.th2.common.event.Event;
 import com.exactpro.th2.common.grpc.ConnectionID;
-import com.exactpro.th2.common.grpc.EventBatch;
-import com.exactpro.th2.common.schema.message.MessageRouter;
-import com.exactpro.th2.common.schema.message.MessageRouterUtils;
 import com.exactpro.th2.common.utils.event.EventBatcher;
 import com.exactpro.th2.common.utils.event.MessageBatcher;
 import quickfix.Log;
 import quickfix.LogFactory;
 import quickfix.SessionID;
 
-import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
 
 public class LogFactoryImpl implements LogFactory {
 
     private final EventBatcher eventBatcher;
-    private final MessageRouter<EventBatch> eventRouter;
-    private final LogFactory logFactory;
-    private final Map<SessionID, ConnectionID> connections;
-    private final String rootEventId;
+    private final Map<SessionID, ConnectionID> connectionIds;
+    private final Map<SessionID, String> sessionsEvents;
     private final MessageBatcher messageBatcher;
 
-    public LogFactoryImpl(LogFactory logFactory, MessageBatcher messageBatcher, EventBatcher eventBatcher,
-                          MessageRouter<EventBatch> eventRouter, Map<SessionID, ConnectionID> connections, String rootEventId) {
-        this.logFactory = logFactory;
+    public LogFactoryImpl(MessageBatcher messageBatcher, EventBatcher eventBatcher,
+                          Map<SessionID, String> sessionsEvents, Map<SessionID, ConnectionID> connectionIds) {
         this.eventBatcher = eventBatcher;
-        this.eventRouter = eventRouter;
-        this.connections = connections;
-        this.rootEventId = rootEventId;
+        this.connectionIds = connectionIds;
+        this.sessionsEvents = sessionsEvents;
         this.messageBatcher = messageBatcher;
     }
 
     @Override
     public Log create(SessionID sessionID) {
-        ConnectionID connectionID = Objects.requireNonNull(connections.get(sessionID), () -> "Unknown session ID: " + sessionID);
-        
-        String eventName = "Fix client " + connectionID.getSessionAlias() + " " + Instant.now();
-        Event event = MessageRouterUtils.storeEvent(eventRouter, rootEventId, eventName, "Microservice", null);
-
-        return new LogImpl(logFactory.create(sessionID), messageBatcher, eventBatcher, connectionID, event.getId());
+        ConnectionID connectionID = Objects.requireNonNull(connectionIds.get(sessionID), () -> "Unknown session ID: " + sessionID);
+        return new LogImpl(messageBatcher, eventBatcher, connectionID, sessionsEvents.get(sessionID));
     }
 
 }

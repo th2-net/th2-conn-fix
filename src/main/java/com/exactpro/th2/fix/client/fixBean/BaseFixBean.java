@@ -5,16 +5,50 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
+import java.nio.file.Path;
+
 import static com.exactpro.th2.fix.client.util.FixBeanUtil.addToConfig;
-import static com.exactpro.th2.fix.client.util.FixBeanUtil.requireNotNullOrBlank;
 import static com.exactpro.th2.fix.client.util.FixBeanUtil.convertFromBoolToYOrN;
-import static quickfix.FileLogFactory.SETTING_FILE_LOG_PATH;
+import static com.exactpro.th2.fix.client.util.FixBeanUtil.requireNotNullOrBlank;
 import static quickfix.FileLogFactory.SETTING_LOG_HEARTBEATS;
-import static quickfix.FileStoreFactory.SETTING_FILE_STORE_PATH;
 import static quickfix.Initiator.SETTING_RECONNECT_INTERVAL;
 import static quickfix.Initiator.SETTING_SOCKET_CONNECT_HOST;
 import static quickfix.Initiator.SETTING_SOCKET_CONNECT_PORT;
-import static quickfix.Session.*;
+import static quickfix.Session.SETTING_ALLOW_UNKNOWN_MSG_FIELDS;
+import static quickfix.Session.SETTING_APP_DATA_DICTIONARY;
+import static quickfix.Session.SETTING_CHECK_LATENCY;
+import static quickfix.Session.SETTING_CHECK_REQUIRED_TAGS;
+import static quickfix.Session.SETTING_DATA_DICTIONARY;
+import static quickfix.Session.SETTING_DEFAULT_APPL_VER_ID;
+import static quickfix.Session.SETTING_DUPLICATE_TAGS_ALLOWED;
+import static quickfix.Session.SETTING_ENABLE_NEXT_EXPECTED_MSG_SEQ_NUM;
+import static quickfix.Session.SETTING_END_DAY;
+import static quickfix.Session.SETTING_END_TIME;
+import static quickfix.Session.SETTING_HEARTBTINT;
+import static quickfix.Session.SETTING_IGNORE_ABSENCE_OF_141_TAG;
+import static quickfix.Session.SETTING_LOGON_TIMEOUT;
+import static quickfix.Session.SETTING_LOGOUT_TIMEOUT;
+import static quickfix.Session.SETTING_MAX_LATENCY;
+import static quickfix.Session.SETTING_NON_STOP_SESSION;
+import static quickfix.Session.SETTING_PERSIST_MESSAGES;
+import static quickfix.Session.SETTING_REFRESH_ON_LOGON;
+import static quickfix.Session.SETTING_REJECT_INVALID_MESSAGE;
+import static quickfix.Session.SETTING_REQUIRES_ORIG_SENDING_TIME;
+import static quickfix.Session.SETTING_RESET_ON_DISCONNECT;
+import static quickfix.Session.SETTING_RESET_ON_LOGON;
+import static quickfix.Session.SETTING_RESET_ON_LOGOUT;
+import static quickfix.Session.SETTING_START_DAY;
+import static quickfix.Session.SETTING_START_TIME;
+import static quickfix.Session.SETTING_TIMESTAMP_PRECISION;
+import static quickfix.Session.SETTING_TIMEZONE;
+import static quickfix.Session.SETTING_TRANSPORT_DATA_DICTIONARY;
+import static quickfix.Session.SETTING_USE_DATA_DICTIONARY;
+import static quickfix.Session.SETTING_VALIDATE_FIELDS_HAVE_VALUES;
+import static quickfix.Session.SETTING_VALIDATE_FIELDS_OUT_OF_ORDER;
+import static quickfix.Session.SETTING_VALIDATE_FIELDS_OUT_OF_RANGE;
+import static quickfix.Session.SETTING_VALIDATE_INCOMING_MESSAGE;
+import static quickfix.Session.SETTING_VALIDATE_SEQUENCE_NUMBERS;
+import static quickfix.Session.SETTING_VALIDATE_USER_DEFINED_FIELDS;
 import static quickfix.SessionFactory.SETTING_CONNECTION_TYPE;
 import static quickfix.SessionSettings.BEGINSTRING;
 import static quickfix.SessionSettings.TARGETCOMPID;
@@ -28,8 +62,6 @@ import static quickfix.mina.ssl.SSLSupport.SETTING_USE_SSL;
 
 public class BaseFixBean {
 
-    protected String fileStorePath = null;
-    protected String fileLogPath = null;
     @JsonIgnore
     protected String connectionType = "initiator";
     protected Long reconnectInterval = null;
@@ -86,14 +118,16 @@ public class BaseFixBean {
     protected String targetLocationID = null;
     protected String defaultApplVerID = null;
     protected String encryptPassword = null;
+    protected Path dataDictionary = null;
+    protected Path appDataDictionary = null;
+    protected Path transportDataDictionary = null;
+
     public BaseFixBean() {
     }
 
     public StringBuilder toConfig(String sectionName) {
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append("[").append(sectionName).append("]").append(System.lineSeparator());
-        addToConfig(SETTING_FILE_STORE_PATH, fileStorePath, stringBuilder);
-        addToConfig(SETTING_FILE_LOG_PATH, fileLogPath, stringBuilder);
         addToConfig(SETTING_CONNECTION_TYPE, connectionType, stringBuilder);
         addToConfig(SETTING_RECONNECT_INTERVAL, reconnectInterval, stringBuilder);
         addToConfig(SETTING_NON_STOP_SESSION, nonStopSession, stringBuilder);
@@ -139,6 +173,9 @@ public class BaseFixBean {
         addToConfig(TARGETSUBID, targetSubID, stringBuilder);
         addToConfig(TARGETLOCID, targetLocationID, stringBuilder);
         addToConfig(SETTING_DEFAULT_APPL_VER_ID, defaultApplVerID, stringBuilder);
+        addToConfig(SETTING_DATA_DICTIONARY, dataDictionary, stringBuilder);
+        addToConfig(SETTING_APP_DATA_DICTIONARY, appDataDictionary, stringBuilder);
+        addToConfig(SETTING_TRANSPORT_DATA_DICTIONARY, transportDataDictionary, stringBuilder);
         return stringBuilder;
     }
 
@@ -214,14 +251,6 @@ public class BaseFixBean {
 
     public void setEncryptPassword(String encryptPassword) {
         this.encryptPassword = convertFromBoolToYOrN("EncryptPassword", encryptPassword);
-    }
-
-    public void setFileStorePath(String fileStorePath) {
-        this.fileStorePath = requireNotNullOrBlank(SETTING_FILE_STORE_PATH, fileStorePath);
-    }
-
-    public void setFileLogPath(String fileLogPath) {
-        this.fileLogPath = requireNotNullOrBlank(SETTING_FILE_LOG_PATH, fileLogPath);
     }
 
     public void setReconnectInterval(Long reconnectInterval) {
@@ -561,14 +590,6 @@ public class BaseFixBean {
         return nonStopSession;
     }
 
-    public String getFileStorePath() {
-        return fileStorePath;
-    }
-
-    public String getFileLogPath() {
-        return fileLogPath;
-    }
-
     public String getConnectionType() {
         return connectionType;
     }
@@ -601,11 +622,33 @@ public class BaseFixBean {
         return autorelogin;
     }
 
+    public Path getDataDictionary() {
+        return dataDictionary;
+    }
+
+    public void setDataDictionary(Path dataDictionary) {
+        this.dataDictionary = Path.of(requireNotNullOrBlank(SETTING_DATA_DICTIONARY, dataDictionary.toString()));
+    }
+
+    public Path getAppDataDictionary() {
+        return appDataDictionary;
+    }
+
+    public void setAppDataDictionary(Path appDataDictionary) {
+        this.appDataDictionary = Path.of(requireNotNullOrBlank(SETTING_APP_DATA_DICTIONARY, appDataDictionary.toString()));
+    }
+
+    public Path getTransportDataDictionary() {
+        return transportDataDictionary;
+    }
+
+    public void setTransportDataDictionary(Path transportDataDictionary) {
+        this.transportDataDictionary = Path.of(requireNotNullOrBlank(SETTING_TRANSPORT_DATA_DICTIONARY, transportDataDictionary.toString()));
+    }
+
     @Override
     public String toString() {
         return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE)
-                .append(SETTING_FILE_STORE_PATH, fileStorePath)
-                .append(SETTING_FILE_LOG_PATH, fileLogPath)
                 .append(SETTING_CONNECTION_TYPE, connectionType)
                 .append(SETTING_RECONNECT_INTERVAL, reconnectInterval)
                 .append(SETTING_HEARTBTINT, heartBtInt)
@@ -652,6 +695,9 @@ public class BaseFixBean {
                 .append(SETTING_VALIDATE_FIELDS_OUT_OF_RANGE, validateFieldsOutOfRange)
                 .append(SETTING_DUPLICATE_TAGS_ALLOWED, duplicateTagsAllowed)
                 .append(SETTING_IGNORE_ABSENCE_OF_141_TAG, ignoreAbsenceOf141tag)
+                .append(SETTING_DATA_DICTIONARY, dataDictionary)
+                .append(SETTING_APP_DATA_DICTIONARY, appDataDictionary)
+                .append(SETTING_TRANSPORT_DATA_DICTIONARY, transportDataDictionary)
                 .append("FakeResendRequest", fakeResendRequest)
                 .append("OrderingFields", orderingFields)
                 .append("Autorelogine", autorelogin)
