@@ -23,6 +23,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
+import org.apache.commons.lang3.concurrent.ConcurrentException;
+import org.apache.commons.lang3.concurrent.LazyInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import quickfix.ConfigError;
@@ -113,32 +115,42 @@ public class Main {
         Settings settings = factory.getCustomConfiguration(Settings.class, mapper);
         Path temporaryDirectory = Files.createTempDirectory("conn-qfj-dictionaries");
 
-        try (InputStream rawBase64 = factory.readDictionary();
-             ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(Base64
-                     .getDecoder()
-                     .decode(rawBase64.readAllBytes()));
-             ZipInputStream zipInputStream = new ZipInputStream(byteArrayInputStream)) {
-            ZipEntry zipEntry = null;
-            try {
-                while ((zipEntry = zipInputStream.getNextEntry()) != null) {
-                    Path filePath = Path.of(zipEntry.getName());
-                    if (!filePath.toString().endsWith(".xml")) {
-                        throw new IncorrectFixFileNameException("Incorrect FIX dictionary file name: " + filePath.getFileName());
+        if (settings.isZipDictionaries()) {
+            try (InputStream rawBase64 = factory.readDictionary();
+                 ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(Base64
+                         .getDecoder()
+                         .decode(rawBase64.readAllBytes()));
+                 ZipInputStream zipInputStream = new ZipInputStream(byteArrayInputStream)) {
+                ZipEntry zipEntry = null;
+                try {
+                    while ((zipEntry = zipInputStream.getNextEntry()) != null) {
+                        Path filePath = Path.of(zipEntry.getName());
+                        if (!filePath.toString().endsWith(".xml")) {
+                            throw new IncorrectFixFileNameException("Incorrect FIX dictionary file name: " + filePath.getFileName());
+                        }
+                        writeDictionary(temporaryDirectory, zipInputStream, filePath);
                     }
-                    Path pathToDictionary = Files.createFile(getPathToDictionary(temporaryDirectory, filePath));
-                    Files.write(pathToDictionary, zipInputStream.readAllBytes());
-                    new DataDictionary(pathToDictionary.toString()); //check that xml file contains the correct values
+                } catch (IncorrectFixFileNameException e) {
+                    throw new Exception("Failed to unzip dictionaries along the path: " + zipEntry.getName(), e);
                 }
-            } catch (IncorrectFixFileNameException | ConfigError e) {
-                throw new Exception("Failed to unzip dictionaries along the path: " + zipEntry.getName(), e);
+            } catch (Exception e) {
+                throw new Exception("Failed to create DataDictionary", e);
             }
-        } catch (IOException e) {
-            throw new Exception("Failed to create DataDictionary", e);
+        } else {
+            for (String dictionaryAlias : factory.getDictionaryAliases()) {
+                try {
+                    InputStream dictionary = factory.loadDictionary(dictionaryAlias);
+                    writeDictionary(temporaryDirectory, dictionary, Path.of(dictionaryAlias));
+                } catch (Exception e) {
+                    throw new Exception("Failed to create DataDictionary by alias: " + dictionaryAlias, e);
+                }
+            }
         }
 
         for (FixBean sessionSetting : settings.sessionSettings) {
             SessionID sessionID = FixBeanUtil.getSessionID(sessionSetting);
-            if (sessionSetting.getBeginString().equals("FIXT.1.1")) {
+            String beginString = Objects.requireNonNullElse(sessionSetting.getBeginString(), settings.getBeginString());
+            if (beginString.equals("FIXT.1.1")) {
 
                 Path transportDataDictionary = Objects.requireNonNull(sessionSetting.getTransportDataDictionary(), () -> "TransportDataDictionary is null for session: " + sessionID);
                 Path appDataDictionary = Objects.requireNonNull(sessionSetting.getAppDataDictionary(), () -> "AppDataDictionary is null for session: " + sessionID);
@@ -150,9 +162,7 @@ public class Main {
                 sessionSetting.setAppDataDictionary(requireFileExist(pathToAppDataDictionary));
             } else {
                 Path dataDictionary = Objects.requireNonNull(sessionSetting.getDataDictionary(), () -> "DataDictionary is null for session: " + sessionID);
-
                 Path pathToDataDictionary = getPathToDictionary(temporaryDirectory, requireNotAbsolute(dataDictionary));
-
                 sessionSetting.setDataDictionary(requireFileExist(pathToDataDictionary));
             }
         }
@@ -162,7 +172,7 @@ public class Main {
         GrpcRouter grpcRouter = factory.getGrpcRouter();
 
         try {
-            run(settings, messageRouter, eventRouter, grpcRouter, resources);
+            run(settings, messageRouter, eventRouter, grpcRouter, resources, factory.getBoxConfiguration().getBoxName());
         } catch (IncorrectDataFormat | CreatingConfigFileException e) {
             LOGGER.error("Error when using the config file", e);
             System.exit(1);
@@ -171,6 +181,16 @@ public class Main {
             System.exit(1);
         }
 
+    }
+
+    private static void writeDictionary(Path directory, InputStream dictionary, Path fileName) throws IOException, ConfigError {
+        Path pathToDictionary = Files.createFile(getPathToDictionary(directory, fileName));
+        Files.write(pathToDictionary, dictionary.readAllBytes());
+        try {
+            new DataDictionary(pathToDictionary.toString()); //check that xml file contains the correct values
+        } catch (ConfigError error) {
+            throw new ConfigError("Failed to create DataDictionary along the path " + fileName.getFileName(), error);
+        }
     }
 
     private static Path requireNotAbsolute(Path path) {
@@ -192,7 +212,7 @@ public class Main {
     }
 
     public static void run(Settings settings, MessageRouter<MessageGroupBatch> messageRouter, MessageRouter<EventBatch> eventRouter,
-                           GrpcRouter grpcRouter, Deque<Resources> resources) throws CreatingConfigFileException, ConfigError, IncorrectDataFormat {
+                           GrpcRouter grpcRouter, Deque<Resources> resources, String boxName) throws CreatingConfigFileException, ConfigError, IncorrectDataFormat {
 
         File configFile = FixBeanUtil.createConfig(settings);
 
@@ -203,12 +223,23 @@ public class Main {
             connectionIDs.put(sessionId, ConnectionID.newBuilder().setSessionAlias(sessionAlias).build());
         });
 
-        String eventName = "FIX client " + String.join(":", sessionIDs.keySet()) + " " + Instant.now();
         Event rootEvent = MessageRouterUtils.storeEvent(eventRouter, Event.start()
-                        .name(eventName)
+                        .description("Root event")
+                        .name(boxName + " " + Instant.now())
                         .type("Microservice")
+                        .bodyData(FixBeanUtil.getSessionTable(settings.getSessionSettings()))
                 , null);
         String rootEventID = rootEvent.getId();
+
+        LazyInitializer<Event> errorEventInitializer = new LazyInitializer<>() {
+            @Override
+            protected Event initialize() {
+                return MessageRouterUtils.storeEvent(eventRouter, Event.start()
+                                .name(boxName + " Error events " + Instant.now())
+                                .type("Root error"),
+                        rootEventID);
+            }
+        };
 
         FixClient fixClient = new FixClient(new SessionSettings(configFile.getAbsolutePath()), settings,
                 messageRouter, eventRouter, connectionIDs, rootEventID, settings.queueCapacity);
@@ -217,18 +248,20 @@ public class Main {
         resources.add(new Resources("client", fixClient::stop));
 
         ClientController controller = new ClientController(fixClient);
+        resources.add(new Resources("client-controller", controller::stop));
 
         MessageListener<MessageGroupBatch> listener = (consumerTag, groupBatch) -> {
             if (!controller.isRunning()) controller.start(settings.autoStopAfter);
 
             groupBatch.getGroupsList().forEach((group) -> {
+                AnyMessage message = null;
                 try {
                     if (group.getMessagesCount() != 1) {
                         if (LOGGER.isErrorEnabled()) {
                             LOGGER.error("Message group contains more or less than 1 message {} ", toJson(group));
                         }
                     } else {
-                        AnyMessage message = group.getMessagesList().get(0);
+                        message = group.getMessagesList().get(0);
                         if (!message.hasRawMessage()) {
                             if (LOGGER.isErrorEnabled()) {
                                 LOGGER.error("Message in the group is not a raw message {} ", toJson(message));
@@ -252,7 +285,8 @@ public class Main {
                             dataDictionary = session
                                     .getDataDictionaryProvider()
                                     .getApplicationDataDictionary(session.getSenderDefaultApplicationVersionID());
-                            sessionDataDictionary = session.getDataDictionaryProvider()
+                            sessionDataDictionary = session
+                                    .getDataDictionaryProvider()
                                     .getSessionDataDictionary(sessionID.getBeginString());
                         } else {
                             dataDictionary = session.getDataDictionary();
@@ -265,6 +299,7 @@ public class Main {
                         } else {
                             fixMessage = new FixMessage(strMessage, sessionDataDictionary, dataDictionary);
                         }
+                        dataDictionary.validate(fixMessage, true);
 
                         if (!message.getRawMessage().getParentEventId().getId().equals("")) {
                             fixMessage.setParentEventID(message.getRawMessage().getParentEventId());
@@ -276,10 +311,12 @@ public class Main {
                     }
                 } catch (Exception e) {
                     LOGGER.error("Failed to handle message group: {}", toJson(group), e);
-
-                    AnyMessage message = group.getMessagesList().get(0);
-                    MessageRouterUtils.storeEvent(eventRouter, MessageUtil.getErrorEvent("Failed to handle message group"),
-                            MessageUtil.getParentEventID(message, rootEventID));
+                    try {
+                        MessageRouterUtils.storeEvent(eventRouter, MessageUtil.getEvent(message, "Failed to handle message group", e),
+                                MessageUtil.getParentEventID(message, errorEventInitializer.get().getId()));
+                    } catch (ConcurrentException ex) {
+                        LOGGER.error("Failed to get root error event id", ex);
+                    }
                 }
             });
         };
@@ -318,9 +355,7 @@ public class Main {
         } catch (InterruptedException e) {
             LOGGER.error("Cannot get lock for Fix Client", e);
         }
-
         LOGGER.info("Finished running");
-
     }
 
     public static class Settings extends BaseFixBean {
@@ -328,6 +363,7 @@ public class Main {
         boolean autoStart = true;
         int autoStopAfter = 0;
         int queueCapacity = 10000;
+        boolean zipDictionaries = false;
         @JsonProperty(required = true)
         List<FixBean> sessionSettings = new ArrayList<>();
         @JsonIgnore
@@ -395,6 +431,14 @@ public class Main {
             return queueCapacity;
         }
 
+        public boolean isZipDictionaries() {
+            return zipDictionaries;
+        }
+
+        public void setZipDictionaries(boolean zipDictionaries) {
+            this.zipDictionaries = zipDictionaries;
+        }
+
         @Override
         public String toString() {
 
@@ -405,6 +449,7 @@ public class Main {
                     .append("autoStopAfter", autoStopAfter)
                     .append("sessionsSettings", sessionSettings)
                     .append("sessionIDsByAliases", sessionIDsByAliases)
+                    .append("zipDictionaries", zipDictionaries)
                     .toString();
         }
     }

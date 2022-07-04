@@ -78,7 +78,6 @@ public class ClientApplication implements Application {
 
             seqNumberRejectPattern.put(sessionID, compilePattern(sessionSettings.getSeqNumberFromRejectRegexp()));
             seqNumberLogoutPattern.put(sessionID, compilePattern(sessionSettings.getSeqNumberFromLogoutRegexp()));
-
         }
     }
 

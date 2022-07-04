@@ -63,34 +63,13 @@ public class MainTest extends Main {
     @Test //for manual test
     public void runTest() throws Exception {
 
-//newOrderSingle
-//        Message fixMessage = new Message();
-//        Message.Header header = fixMessage.getHeader();
-//        header.setField(new BeginString("FIX.4.2"));
-//        header.setField(new MsgType("D"));
-//        header.setField(new SenderCompID("client"));
-//        header.setField(new TargetCompID("server"));
-//        header.setField(new SenderSubID("sendSubId"));
-//        header.setField(new TargetSubID("tarSubId"));
-
-//
-//        quickfix.fix42.NewOrderSingle fixMessage2 = new quickfix.fix42.NewOrderSingle(
-//                new ClOrdID("ClOrdID"),
-//                new HandlInst('3'),
-//                new Symbol("Symbol"),
-//                new Side('1'),
-//                new TransactTime(LocalDateTime.now()),
-//                new OrdType('1'));
-//        fixMessage2.setField(new SenderCompID("client2"));
-//        fixMessage2.setField(new TargetCompID("server"));
-
         Main.Settings settings = new Settings();
 
         FixBean fixBean = new FixBean();
         fixBean.setBeginString("FIX.4.4");
         fixBean.setSenderCompID("client");
         fixBean.setTargetCompID("server");
-        fixBean.setSocketConnectPort(9877);
+        fixBean.setSocketConnectPort(9877L);
         fixBean.setSessionAlias("client1");
         fixBean.setDataDictionary(Path.of("src/test/java/resources/FIX44.xml"));
         fixBean.setOrderingFields("true");
@@ -98,7 +77,7 @@ public class MainTest extends Main {
         fixBean.setEndTime("21:15:00 Europe/Moscow");
         fixBean.setStartDay("monday");
         fixBean.setEndDay("sunday");
-        fixBean.setReconnectInterval(10);
+        fixBean.setReconnectInterval(10L);
         fixBean.setAutorelogin(true);
         fixBean.setResetOnLogon("false");
         fixBean.setUseDefaultApplVerID(true);
@@ -106,21 +85,25 @@ public class MainTest extends Main {
         fixBean.setPassword("123");
 //        fixBean.setNewPassword("123");
         fixBean.setCheckRequiredTags("true");
-//        fixBean.setSeqNumberFromRejectRegexp("Wrong sequence number!");
-//        fixBean.setSeqNumSender(2);
-//        fixBean.setSeqNumTarget(2);
-//        fixBean.setResetOnLogon("true");
         fixBean.setEncryptPassword("false");
         fixBean.setDuplicateTagsAllowed("true");
         fixBean.setIgnoreAbsenceOf141tag("true");
         fixBean.setValidateFieldsOutOfRange("true");
+        fixBean.setSeqNumberFromRejectRegexp("Wrong sequence number!");
+        fixBean.setSeqNumSender(2);
+        fixBean.setSeqNumTarget(2);
+        fixBean.setHeartBtInt(30L);
+        fixBean.setFileLogPath("outgoing/");
+        fixBean.setFileStorePath("storage/messages/");
+        fixBean.setSocketConnectHost("localhost");
+        fixBean.setCheckRequiredTags("false");
 
         FixBean fixBean1 = new FixBean();
         fixBean1.setBeginString("FIXT.1.1");
         fixBean1.setDefaultApplVerID("9");
         fixBean1.setSenderCompID("client2");
         fixBean1.setTargetCompID("server");
-        fixBean1.setSocketConnectPort(9877);
+        fixBean1.setSocketConnectPort(9877L);
         fixBean1.setSessionAlias("client2");
         fixBean1.setTransportDataDictionary(Path.of("src/test/java/resources/FIXT11.xml"));
         fixBean1.setAppDataDictionary(Path.of("src/test/java/resources/FIX50SP2.xml"));
@@ -133,6 +116,10 @@ public class MainTest extends Main {
         fixBean1.setPassword("1234");
         fixBean1.setNewPassword("123");
         fixBean1.setResetOnLogon("true");
+        fixBean1.setHeartBtInt(30L);
+        fixBean1.setFileLogPath("outgoing/");
+        fixBean1.setFileStorePath("storage/messages/");
+        fixBean1.setSocketConnectHost("localhost");
 
         List<FixBean> fixBeans = new ArrayList<>();
         fixBeans.add(fixBean);
@@ -161,7 +148,7 @@ public class MainTest extends Main {
 
         Thread thread = new Thread(() -> {
             try {
-                Main.run(settings, messageRouter, eventRouter, grpcRouter, resources);
+                Main.run(settings, messageRouter, eventRouter, grpcRouter, resources, "conn-qfj");
             } catch (ConfigError | CreatingConfigFileException | IncorrectDataFormat configError) {
                 configError.printStackTrace();
             }
@@ -196,7 +183,7 @@ public class MainTest extends Main {
 
         Message fixMessage1 = new Message();
         Message.Header headerClient1 = fixMessage1.getHeader();
-        headerClient1.setField(new BeginString("FIXT.1.1"));
+        headerClient1.setField(new BeginString("FIX.4.4"));
         headerClient1.setField(new MsgType(MsgType.TRADE_CAPTURE_REPORT));
         headerClient1.setField(new SenderCompID("client"));
         headerClient1.setField(new TargetCompID("server"));

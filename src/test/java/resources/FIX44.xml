@@ -5885,7 +5885,6 @@
   <field number='701' name='YieldCalcDate' type='LOCALMKTDATE' />
   <field number='702' name='NoPositions' type='NUMINGROUP' />
   <field number='703' name='PosType' type='STRING'>
-   <value enum='TQ' description='TRANSACTION_QUANTITY' />
    <value enum='IAS' description='INTRA_SPREAD_QTY' />
    <value enum='IES' description='INTER_SPREAD_QTY' />
    <value enum='FIN' description='END_OF_DAY_QTY' />
