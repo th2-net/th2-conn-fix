@@ -224,11 +224,11 @@ public class Main {
 
         File configFile = FixBeanUtil.createConfig(settings);
 
-        Map<SessionID, ConnectionID> connectionIDs = new HashMap<>();
+        Map<SessionID, ConnectionID> connectionIds = new HashMap<>();
         Map<String, SessionID> sessionIDs = settings.getSessionIDsByAliases();
 
         sessionIDs.forEach((sessionAlias, sessionId) -> {
-            connectionIDs.put(sessionId, ConnectionID.newBuilder().setSessionAlias(sessionAlias).build());
+            connectionIds.put(sessionId, ConnectionID.newBuilder().setSessionAlias(sessionAlias).build());
         });
 
         Event rootEvent = MessageRouterUtils.storeEvent(eventRouter, Event.start()
@@ -280,7 +280,7 @@ public class Main {
         });
 
         FixClient fixClient = new FixClient(new SessionSettings(configFile.getAbsolutePath()), settings, messageBatcher,
-                eventBatcher, connectionIDs, sessionsEvents, settings.queueCapacity);
+                eventBatcher, connectionIds, sessionsEvents, settings.queueCapacity);
 
         configFile.deleteOnExit();
         resources.add(new Resources("client", fixClient::stop));
