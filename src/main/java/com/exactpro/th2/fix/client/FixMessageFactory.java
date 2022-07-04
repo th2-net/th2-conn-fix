@@ -86,12 +86,8 @@ public class FixMessageFactory implements MessageFactory {
         return create(beginString, defaultApplVerID, msgType);
     }
 
-    public Message create(String beginString, String msgType, int[] fieldOrder) {
 
-        return create(beginString, defaultApplVerID, msgType, fieldOrder);
-    }
-
-    public Message create(String beginString, ApplVerID applVerID, String msgType, int[] fieldOrder){
+    public FixMessage create(String msgType, int[] fieldOrder) {
 
         FixMessage message = new FixMessage(fieldOrder, fieldOrder, fieldOrder);
         message.getHeader().setString(MsgType.FIELD, msgType);

@@ -277,6 +277,8 @@ public class Main {
                         FixBean sessionSettings = FixBeanUtil.getSessionSettingsBySessionAlias(settings.getSessionSettings(), sessionAlias);
                         Objects.requireNonNull(sessionSettings, "Unknown session alias + " + sessionAlias);
 
+                        FixMessage fixMessage;
+                        FixMessageFactory messageFactory = (FixMessageFactory) session.getMessageFactory();
                         DataDictionary dataDictionary;
                         DataDictionary sessionDataDictionary;
                         if (sessionID.isFIXT()) {
@@ -291,27 +293,24 @@ public class Main {
                             sessionDataDictionary = dataDictionary;
                         }
 
-                        Message fixMessage;
                         if (sessionSettings.getOrderingFields() != null && sessionSettings.getOrderingFields().equals(YES_SETTING)) {
-
-                            FixMessageFactory messageFactory = (FixMessageFactory) session.getMessageFactory();
-                            fixMessage = messageFactory.create(sessionID.getBeginString(), MessageUtils.getMessageType(strMessage), dataDictionary.getOrderedFields());
+                            fixMessage = messageFactory.create(MessageUtils.getMessageType(strMessage), dataDictionary.getOrderedFields());
                             fixMessage.fromString(strMessage, sessionDataDictionary, dataDictionary, true);
                         } else {
-                            fixMessage = MessageUtils.parse(session, strMessage);
+                            fixMessage = new FixMessage(strMessage, sessionDataDictionary, dataDictionary);
                         }
                         dataDictionary.validate(fixMessage, true);
 
+                        if (!message.getRawMessage().getParentEventId().getId().equals("")) {
+                            fixMessage.setParentEventID(message.getRawMessage().getParentEventId());
+                        }
+
                         if (!session.send(fixMessage)) {
                             throw new IllegalStateException("Message not sent. Message was not queued for transmission to the counterparty");
-                        } else {
-                            MessageRouterUtils.storeEvent(eventRouter, MessageUtil.getEvent(message, "Message successfully sent"),
-                                    MessageUtil.getParentEventID(message, rootEventID));
                         }
                     }
                 } catch (Exception e) {
                     LOGGER.error("Failed to handle message group: {}", toJson(group), e);
-
                     try {
                         MessageRouterUtils.storeEvent(eventRouter, MessageUtil.getEvent(message, "Failed to handle message group", e),
                                 MessageUtil.getParentEventID(message, errorEventInitializer.get().getId()));
@@ -321,7 +320,6 @@ public class Main {
                 }
             });
         };
-
         try {
             SubscriberMonitor monitor = Objects.requireNonNull(messageRouter.subscribe(listener, INPUT_QUEUE_ATTRIBUTE), "Subscriber monitor must not be null.");
             resources.add(new Resources("raw-monitor", monitor::unsubscribe));
