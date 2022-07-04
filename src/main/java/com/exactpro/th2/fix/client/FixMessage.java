@@ -2,8 +2,13 @@ package com.exactpro.th2.fix.client;
 
 import com.exactpro.th2.common.grpc.EventID;
 import org.apache.mina.util.ExpiringMap;
+import quickfix.DataDictionary;
+import quickfix.Field;
 import quickfix.FieldMap;
+import quickfix.InvalidMessage;
 import quickfix.Message;
+
+import java.util.TreeMap;
 
 public class FixMessage extends Message {
 
@@ -13,10 +18,16 @@ public class FixMessage extends Message {
     protected final FixHeader header;
     protected final FixTrailer trailer;
     protected EventID parentEventID;
-    protected Message message;
+    protected TreeMap<Integer, Field<?>> fields;
 
     static {
         MESSAGE_PARENT_EVENT_IDS.getExpirer().startExpiringIfNotStarted();
+    }
+
+    public FixMessage(String strMessage, DataDictionary sessionDataDictionary, DataDictionary dataDictionary) throws InvalidMessage {
+        this.header = new FixHeader();
+        this.trailer = new FixTrailer();
+        this.fromString(strMessage, sessionDataDictionary, dataDictionary, true);
     }
 
     public FixMessage(int[] fieldOrderBody, int[] fieldOrderHeader, int[] fieldOrderTrailer) {
@@ -25,21 +36,12 @@ public class FixMessage extends Message {
         super.trailer = this.trailer = new FixTrailer(fieldOrderTrailer);
     }
 
-    public FixMessage(Message message, EventID parentEventID) {
-        super(message.getFieldOrder());
-        super.header = this.header = new FixHeader(message.getHeader().getFieldOrder());
-        super.trailer = this.trailer = new FixTrailer(message.getTrailer().getFieldOrder());
-        this.message = message;
-        this.parentEventID = parentEventID;
-    }
-
     @Override
     public Object clone() {
         FixMessage message = new FixMessage(getFieldOrder(), getHeader().getFieldOrder(), getTrailer().getFieldOrder());
         message.initializeFrom(this);
         message.getFixHeader().initializeFrom(getHeader());
         message.getFixTrailer().initializeFrom(getTrailer());
-        message.message = this.message;
         message.parentEventID = this.parentEventID;
         return message;
     }
@@ -48,12 +50,16 @@ public class FixMessage extends Message {
         return MESSAGE_PARENT_EVENT_IDS.get(message);
     }
 
+    public void setParentEventID(EventID parentEventID) {
+        this.parentEventID = parentEventID;
+    }
+
     @Override
     public String toString() {
 
         String res = super.toString();
         if (parentEventID != null && !parentEventID.getId().equals("")) {
-            MESSAGE_PARENT_EVENT_IDS.put(res, parentEventID);
+            MESSAGE_PARENT_EVENT_IDS.putIfAbsent(res, parentEventID);
         }
         return res;
     }
@@ -67,6 +73,10 @@ public class FixMessage extends Message {
     }
 
     private static final class FixHeader extends Header {
+
+        public FixHeader() {
+        }
+
         public FixHeader(int[] fieldOrder) {
             super(fieldOrder);
         }
@@ -83,6 +93,10 @@ public class FixMessage extends Message {
     }
 
     private static final class FixTrailer extends Trailer {
+
+        public FixTrailer() {
+        }
+
         public FixTrailer(int[] fieldOrder) {
             super(fieldOrder);
         }

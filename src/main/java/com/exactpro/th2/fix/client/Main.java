@@ -244,30 +244,34 @@ public class Main {
                         FixBean sessionSettings = FixBeanUtil.getSessionSettingsBySessionAlias(settings.getSessionSettings(), sessionAlias);
                         Objects.requireNonNull(sessionSettings, "Unknown session alias + " + sessionAlias);
 
-                        Message qfjMessage;
-                        if (sessionSettings.getOrderingFields() != null && sessionSettings.getOrderingFields().equals(YES_SETTING)) {
-
-                            DataDictionary dataDictionary;
-                            if (sessionID.isFIXT()) {
-                                dataDictionary = session
-                                        .getDataDictionaryProvider()
-                                        .getApplicationDataDictionary(session.getSenderDefaultApplicationVersionID());
-                            } else {
-                                dataDictionary = session.getDataDictionary();
-                            }
-
-                            FixMessageFactory messageFactory = (FixMessageFactory) session.getMessageFactory();
-
-                            qfjMessage = messageFactory.create(sessionID.getBeginString(), MessageUtils.getMessageType(strMessage), dataDictionary.getOrderedFields());
-                            qfjMessage.fromString(strMessage, dataDictionary, true);
+                        FixMessage fixMessage;
+                        FixMessageFactory messageFactory = (FixMessageFactory) session.getMessageFactory();
+                        DataDictionary dataDictionary;
+                        DataDictionary sessionDataDictionary;
+                        if (sessionID.isFIXT()) {
+                            dataDictionary = session
+                                    .getDataDictionaryProvider()
+                                    .getApplicationDataDictionary(session.getSenderDefaultApplicationVersionID());
+                            sessionDataDictionary = session.getDataDictionaryProvider()
+                                    .getSessionDataDictionary(sessionID.getBeginString());
                         } else {
-                            qfjMessage = MessageUtils.parse(session, strMessage);
+                            dataDictionary = session.getDataDictionary();
+                            sessionDataDictionary = dataDictionary;
                         }
-                        if (!message.getRawMessage().getParentEventId().getId().equals("")) {
-                            FixMessage fixMessage = new FixMessage(qfjMessage, message.getRawMessage().getParentEventId());
-                            sendMessage(session, fixMessage.message);
+
+                        if (sessionSettings.getOrderingFields() != null && sessionSettings.getOrderingFields().equals(YES_SETTING)) {
+                            fixMessage = messageFactory.create(MessageUtils.getMessageType(strMessage), dataDictionary.getOrderedFields());
+                            fixMessage.fromString(strMessage, sessionDataDictionary, dataDictionary, true);
                         } else {
-                            sendMessage(session, qfjMessage);
+                            fixMessage = new FixMessage(strMessage, sessionDataDictionary, dataDictionary);
+                        }
+
+                        if (!message.getRawMessage().getParentEventId().getId().equals("")) {
+                            fixMessage.setParentEventID(message.getRawMessage().getParentEventId());
+                        }
+
+                        if (!session.send(fixMessage)) {
+                            throw new IllegalStateException("Message not sent. Message was not queued for transmission to the counterparty");
                         }
                     }
                 } catch (Exception e) {
@@ -317,12 +321,6 @@ public class Main {
 
         LOGGER.info("Finished running");
 
-    }
-
-    private static void sendMessage(Session session, Message message) {
-        if (!session.send(message)) {
-            throw new IllegalStateException("Message not sent. Message was not queued for transmission to the counterparty");
-        }
     }
 
     public static class Settings extends BaseFixBean {
