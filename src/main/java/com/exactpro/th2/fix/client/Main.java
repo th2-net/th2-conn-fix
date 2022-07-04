@@ -406,8 +406,8 @@ public class Main {
         int autoStopAfter = 0;
         int queueCapacity = 10000;
         boolean zipDictionaries = false;
-        Integer maxBatchSize = 100;
-        Long maxFlushTime = 1000L;
+        int maxBatchSize = 1000;
+        long maxFlushTime = 1000L;
         @JsonProperty(required = true)
         List<FixBean> sessionSettings = new ArrayList<>();
         @JsonIgnore
@@ -483,19 +483,19 @@ public class Main {
             this.zipDictionaries = zipDictionaries;
         }
 
-        public Integer getMaxBatchSize() {
+        public int getMaxBatchSize() {
             return maxBatchSize;
         }
 
-        public void setMaxBatchSize(Integer maxBatchSize) {
+        public void setMaxBatchSize(int maxBatchSize) {
             this.maxBatchSize = maxBatchSize;
         }
 
-        public Long getMaxFlushTime() {
+        public long getMaxFlushTime() {
             return maxFlushTime;
         }
 
-        public void setMaxFlushTime(Long maxFlushTime) {
+        public void setMaxFlushTime(long maxFlushTime) {
             this.maxFlushTime = maxFlushTime;
         }
 

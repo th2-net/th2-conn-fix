@@ -45,7 +45,6 @@ import quickfix.field.TradingSessionID;
 import quickfix.field.TransactTime;
 import quickfix.field.TrdType;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -94,8 +93,6 @@ public class MainTest extends Main {
         fixBean.setSeqNumSender(2);
         fixBean.setSeqNumTarget(2);
         fixBean.setHeartBtInt(30L);
-        fixBean.setFileLogPath("outgoing/");
-        fixBean.setFileStorePath("storage/messages/");
         fixBean.setSocketConnectHost("localhost");
         fixBean.setCheckRequiredTags("false");
 
@@ -118,8 +115,6 @@ public class MainTest extends Main {
         fixBean1.setNewPassword("123");
         fixBean1.setResetOnLogon("true");
         fixBean1.setHeartBtInt(30L);
-        fixBean1.setFileLogPath("outgoing/");
-        fixBean1.setFileStorePath("storage/messages/");
         fixBean1.setSocketConnectHost("localhost");
 
         List<FixBean> fixBeans = new ArrayList<>();

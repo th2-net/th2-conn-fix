@@ -17,14 +17,11 @@ import static quickfix.SessionSettings.TARGETLOCID;
 import static quickfix.SessionSettings.TARGETSUBID;
 import static quickfix.mina.ssl.SSLSupport.*;
 import static quickfix.FileLogFactory.*;
-import static quickfix.FileStoreFactory.*;
 import static quickfix.SessionFactory.*;
 import static quickfix.Initiator.*;
 
 public class BaseFixBean {
 
-    protected String fileStorePath = null;
-    protected String fileLogPath = null;
     @JsonIgnore
     protected String connectionType = "initiator";
     protected Long reconnectInterval = null;
@@ -90,8 +87,6 @@ public class BaseFixBean {
     public StringBuilder toConfig(String sectionName) {
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append("[").append(sectionName).append("]").append(System.lineSeparator());
-        addToConfig(SETTING_FILE_STORE_PATH, fileStorePath, stringBuilder);
-        addToConfig(SETTING_FILE_LOG_PATH, fileLogPath, stringBuilder);
         addToConfig(SETTING_CONNECTION_TYPE, connectionType, stringBuilder);
         addToConfig(SETTING_RECONNECT_INTERVAL, reconnectInterval, stringBuilder);
         addToConfig(SETTING_NON_STOP_SESSION, nonStopSession, stringBuilder);
@@ -215,14 +210,6 @@ public class BaseFixBean {
 
     public void setEncryptPassword(String encryptPassword) {
         this.encryptPassword = convertFromBoolToYOrN("EncryptPassword", encryptPassword);
-    }
-
-    public void setFileStorePath(String fileStorePath) {
-        this.fileStorePath = requireNotNullOrBlank(SETTING_FILE_STORE_PATH, fileStorePath);
-    }
-
-    public void setFileLogPath(String fileLogPath) {
-        this.fileLogPath = requireNotNullOrBlank(SETTING_FILE_LOG_PATH, fileLogPath);
     }
 
     public void setReconnectInterval(Long reconnectInterval) {
@@ -562,14 +549,6 @@ public class BaseFixBean {
         return nonStopSession;
     }
 
-    public String getFileStorePath() {
-        return fileStorePath;
-    }
-
-    public String getFileLogPath() {
-        return fileLogPath;
-    }
-
     public String getConnectionType() {
         return connectionType;
     }
@@ -629,8 +608,6 @@ public class BaseFixBean {
     @Override
     public String toString() {
         return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE)
-                .append(SETTING_FILE_STORE_PATH, fileStorePath)
-                .append(SETTING_FILE_LOG_PATH, fileLogPath)
                 .append(SETTING_CONNECTION_TYPE, connectionType)
                 .append(SETTING_RECONNECT_INTERVAL, reconnectInterval)
                 .append(SETTING_HEARTBTINT, heartBtInt)

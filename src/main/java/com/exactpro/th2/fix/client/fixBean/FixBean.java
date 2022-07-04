@@ -8,9 +8,7 @@ import java.nio.file.Path;
 
 import static com.exactpro.th2.fix.client.util.FixBeanUtil.addToConfig;
 import static com.exactpro.th2.fix.client.util.FixBeanUtil.requireNotNullOrBlank;
-import static quickfix.FileLogFactory.SETTING_FILE_LOG_PATH;
 import static quickfix.FileLogFactory.SETTING_LOG_HEARTBEATS;
-import static quickfix.FileStoreFactory.SETTING_FILE_STORE_PATH;
 import static quickfix.Initiator.SETTING_RECONNECT_INTERVAL;
 import static quickfix.Initiator.SETTING_SOCKET_CONNECT_HOST;
 import static quickfix.Initiator.SETTING_SOCKET_CONNECT_PORT;
@@ -84,8 +82,6 @@ public class FixBean extends BaseFixBean {
         addToConfig(SETTING_REQUIRES_ORIG_SENDING_TIME, requiresOrigSendingTime, stringBuilder);
         addToConfig(SETTING_TIMEZONE, timeZone, stringBuilder);
         addToConfig(SETTING_NON_STOP_SESSION, nonStopSession, stringBuilder);
-        addToConfig(SETTING_FILE_STORE_PATH, fileStorePath, stringBuilder);
-        addToConfig(SETTING_FILE_LOG_PATH, fileLogPath, stringBuilder);
         addToConfig(SETTING_RECONNECT_INTERVAL, reconnectInterval, stringBuilder);
         addToConfig(SETTING_HEARTBTINT, heartBtInt, stringBuilder);
         addToConfig(SETTING_VALIDATE_USER_DEFINED_FIELDS, validateUserDefinedFields, stringBuilder);

@@ -21,7 +21,6 @@ public class LogImpl implements Log {
 
     private final Logger LOGGER = LoggerFactory.getLogger(LogImpl.class);
 
-    private final Log log;
     private final EventBatcher eventBatcher;
     private final ConnectionID connectionID;
     private final String parentEventId;
@@ -31,9 +30,8 @@ public class LogImpl implements Log {
     private final MessageBatcher messageBatcher;
 
 
-    public LogImpl(Log log, MessageBatcher messageBatcher, EventBatcher eventBatcher,
+    public LogImpl(MessageBatcher messageBatcher, EventBatcher eventBatcher,
                    ConnectionID connectionID, String parentEventId) {
-        this.log = log;
         this.messageBatcher = messageBatcher;
         this.eventBatcher = eventBatcher;
         this.connectionID = connectionID;
@@ -43,13 +41,10 @@ public class LogImpl implements Log {
 
     @Override
     public void clear() {
-        log.clear();
     }
 
     @Override
     public void onIncoming(String message) {
-        log.onIncoming(message);
-
         try {
             onMessage(message, Direction.FIRST);
         } catch (Exception e) {
@@ -59,8 +54,6 @@ public class LogImpl implements Log {
 
     @Override
     public void onOutgoing(String message) {
-        log.onOutgoing(message);
-
         try {
             onMessage(message, Direction.SECOND);
         } catch (Exception e) {
@@ -76,18 +69,15 @@ public class LogImpl implements Log {
 
     @Override
     public void onEvent(String text) {
-        log.onEvent(text);
         eventBatcher.onEvent(EventUtil.toEvent(parentEventId, text));
     }
 
     @Override
     public void onErrorEvent(String text) {
-        log.onErrorEvent(text);
         eventBatcher.onEvent(EventUtil.toEvent(parentEventId, text, "Error", null));
     }
 
     public void onErrorEvent(String text, Throwable e) {
-        log.onErrorEvent(text);
         eventBatcher.onEvent(EventUtil.toEvent(parentEventId, text, e));
     }
 
