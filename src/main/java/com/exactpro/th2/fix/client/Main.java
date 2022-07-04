@@ -406,8 +406,8 @@ public class Main {
         int autoStopAfter = 0;
         int queueCapacity = 10000;
         boolean zipDictionaries = false;
-        Integer maxBatchSize = 100;
-        Long maxFlushTime = 1000L;
+        int maxBatchSize = 1000;
+        long maxFlushTime = 1000L;
         @JsonProperty(required = true)
         List<FixBean> sessionSettings = new ArrayList<>();
         @JsonIgnore
