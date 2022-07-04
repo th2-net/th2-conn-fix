@@ -2,6 +2,7 @@ package com.exactpro.th2.fix.client;
 
 
 import org.jetbrains.annotations.NotNull;
+import quickfix.RuntimeError;
 
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -21,7 +22,7 @@ class ClientController implements AutoCloseable {
         this.client = Objects.requireNonNull(client, "Fix Client must not be null");
     }
 
-    public synchronized void start(int stopAfter) {
+    public synchronized void start(int stopAfter) throws RuntimeError {
         if (!isRunning()) {
             client.start();
             if (stopAfter > 0) {

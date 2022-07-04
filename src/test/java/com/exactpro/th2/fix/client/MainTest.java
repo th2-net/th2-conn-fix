@@ -45,6 +45,7 @@ import quickfix.field.TradingSessionID;
 import quickfix.field.TransactTime;
 import quickfix.field.TrdType;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.ArrayList;

@@ -11,6 +11,7 @@ import quickfix.LogFactory;
 import quickfix.MessageFactory;
 import quickfix.MessageStoreFactory;
 import quickfix.NoopStoreFactory;
+import quickfix.RuntimeError;
 import quickfix.SessionID;
 import quickfix.SessionSettings;
 import quickfix.SocketInitiator;
@@ -25,7 +26,6 @@ public class FixClient {
     private final SocketInitiator initiator;
     private volatile boolean isRunning = false;
 
-
     public FixClient(SessionSettings settings, Main.Settings sessionsSettings, MessageBatcher messageBatcher, EventBatcher eventBatcher,
                      Map<SessionID, ConnectionID> connectionIds, Map<SessionID, String> sessionEvents, int queueCapacity) throws ConfigError {
 
@@ -36,12 +36,12 @@ public class FixClient {
         initiator = new SocketInitiator(application, messageStoreFactory, settings, logFactory, messageFactory, queueCapacity);
     }
 
-    public synchronized void start() {
+    public synchronized void start() throws RuntimeError {
         try {
             initiator.start();
             isRunning = true;
         } catch (Exception e) {
-            LOGGER.error("Failed to start client", e);
+            throw new RuntimeError("Failed to start fix client", e);
         }
     }
 

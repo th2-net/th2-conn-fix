@@ -8,17 +8,57 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 import java.nio.file.Path;
 
 import static com.exactpro.th2.fix.client.util.FixBeanUtil.addToConfig;
-import static com.exactpro.th2.fix.client.util.FixBeanUtil.requireNotNullOrBlank;
 import static com.exactpro.th2.fix.client.util.FixBeanUtil.convertFromBoolToYOrN;
-import static quickfix.Session.*;
+import static com.exactpro.th2.fix.client.util.FixBeanUtil.requireNotNullOrBlank;
+import static quickfix.FileLogFactory.SETTING_LOG_HEARTBEATS;
+import static quickfix.Initiator.SETTING_RECONNECT_INTERVAL;
+import static quickfix.Initiator.SETTING_SOCKET_CONNECT_HOST;
+import static quickfix.Initiator.SETTING_SOCKET_CONNECT_PORT;
+import static quickfix.Session.SETTING_ALLOW_UNKNOWN_MSG_FIELDS;
+import static quickfix.Session.SETTING_APP_DATA_DICTIONARY;
+import static quickfix.Session.SETTING_CHECK_LATENCY;
+import static quickfix.Session.SETTING_CHECK_REQUIRED_TAGS;
+import static quickfix.Session.SETTING_DATA_DICTIONARY;
+import static quickfix.Session.SETTING_DEFAULT_APPL_VER_ID;
+import static quickfix.Session.SETTING_DUPLICATE_TAGS_ALLOWED;
+import static quickfix.Session.SETTING_ENABLE_NEXT_EXPECTED_MSG_SEQ_NUM;
+import static quickfix.Session.SETTING_END_DAY;
+import static quickfix.Session.SETTING_END_TIME;
+import static quickfix.Session.SETTING_HEARTBTINT;
+import static quickfix.Session.SETTING_IGNORE_ABSENCE_OF_141_TAG;
+import static quickfix.Session.SETTING_LOGON_TIMEOUT;
+import static quickfix.Session.SETTING_LOGOUT_TIMEOUT;
+import static quickfix.Session.SETTING_MAX_LATENCY;
+import static quickfix.Session.SETTING_NON_STOP_SESSION;
+import static quickfix.Session.SETTING_PERSIST_MESSAGES;
+import static quickfix.Session.SETTING_REFRESH_ON_LOGON;
+import static quickfix.Session.SETTING_REJECT_INVALID_MESSAGE;
+import static quickfix.Session.SETTING_REQUIRES_ORIG_SENDING_TIME;
+import static quickfix.Session.SETTING_RESET_ON_DISCONNECT;
+import static quickfix.Session.SETTING_RESET_ON_LOGON;
+import static quickfix.Session.SETTING_RESET_ON_LOGOUT;
+import static quickfix.Session.SETTING_START_DAY;
+import static quickfix.Session.SETTING_START_TIME;
+import static quickfix.Session.SETTING_TIMESTAMP_PRECISION;
+import static quickfix.Session.SETTING_TIMEZONE;
+import static quickfix.Session.SETTING_TRANSPORT_DATA_DICTIONARY;
+import static quickfix.Session.SETTING_USE_DATA_DICTIONARY;
+import static quickfix.Session.SETTING_VALIDATE_FIELDS_HAVE_VALUES;
+import static quickfix.Session.SETTING_VALIDATE_FIELDS_OUT_OF_ORDER;
+import static quickfix.Session.SETTING_VALIDATE_FIELDS_OUT_OF_RANGE;
+import static quickfix.Session.SETTING_VALIDATE_INCOMING_MESSAGE;
+import static quickfix.Session.SETTING_VALIDATE_SEQUENCE_NUMBERS;
+import static quickfix.Session.SETTING_VALIDATE_USER_DEFINED_FIELDS;
+import static quickfix.SessionFactory.SETTING_CONNECTION_TYPE;
 import static quickfix.SessionSettings.BEGINSTRING;
 import static quickfix.SessionSettings.TARGETCOMPID;
 import static quickfix.SessionSettings.TARGETLOCID;
 import static quickfix.SessionSettings.TARGETSUBID;
-import static quickfix.mina.ssl.SSLSupport.*;
-import static quickfix.FileLogFactory.*;
-import static quickfix.SessionFactory.*;
-import static quickfix.Initiator.*;
+import static quickfix.mina.ssl.SSLSupport.SETTING_CIPHER_SUITES;
+import static quickfix.mina.ssl.SSLSupport.SETTING_ENABLED_PROTOCOLS;
+import static quickfix.mina.ssl.SSLSupport.SETTING_KEY_STORE_NAME;
+import static quickfix.mina.ssl.SSLSupport.SETTING_KEY_STORE_PWD;
+import static quickfix.mina.ssl.SSLSupport.SETTING_USE_SSL;
 
 public class BaseFixBean {
 
@@ -81,6 +121,7 @@ public class BaseFixBean {
     protected Path dataDictionary = null;
     protected Path appDataDictionary = null;
     protected Path transportDataDictionary = null;
+
     public BaseFixBean() {
     }
 
