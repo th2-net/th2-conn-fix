@@ -87,9 +87,6 @@ public class FixBeanUtil {
 
         TableBuilder<Row> tableBuilder = new TableBuilder<>();
 
-        tableBuilder.row(new Row("sessionAlias", "senderCompID", "targetCompID",
-                "socketConnectHost", "socketConnectPort", "username", "dataDictionary"));
-
         String dataDictionary;
         for (FixBean settings : sessionSettings) {
             dataDictionary = settings.getDataDictionary() != null ? settings.getDataDictionary().getFileName().toString()
