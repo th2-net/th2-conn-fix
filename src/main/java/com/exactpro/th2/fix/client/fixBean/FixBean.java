@@ -117,6 +117,7 @@ public class FixBean extends BaseFixBean {
         addToConfig(SETTING_END_DAY, endDay, stringBuilder);
         addToConfig(SETTING_TIMESTAMP_PRECISION, timeStampPrecision, stringBuilder);
         addToConfig(SETTING_ENABLE_NEXT_EXPECTED_MSG_SEQ_NUM, enableNextExpectedMsgSeqNum, stringBuilder);
+        addToConfig(SETTING_VALIDATE_UNORDERED_GROUP_FIELDS, validateUnorderedGroupFields, stringBuilder);
         return stringBuilder;
     }
 

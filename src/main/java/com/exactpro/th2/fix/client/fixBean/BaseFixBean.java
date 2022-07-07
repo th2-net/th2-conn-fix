@@ -59,6 +59,7 @@ public class BaseFixBean {
     protected String orderingFields = null;
     protected boolean autorelogin = true;
     protected boolean useDefaultApplVerID = true;
+    protected String validateUnorderedGroupFields = null;
 
 
     public BaseFixBean() {
@@ -103,6 +104,7 @@ public class BaseFixBean {
         addToConfig(SETTING_END_DAY, endDay, stringBuilder);
         addToConfig(SETTING_TIMESTAMP_PRECISION, timeStampPrecision, stringBuilder);
         addToConfig(SETTING_ENABLE_NEXT_EXPECTED_MSG_SEQ_NUM, enableNextExpectedMsgSeqNum, stringBuilder);
+        addToConfig(SETTING_VALIDATE_UNORDERED_GROUP_FIELDS, validateUnorderedGroupFields, stringBuilder);
 
         return stringBuilder;
     }
@@ -224,6 +226,14 @@ public class BaseFixBean {
 
     public void setUseDefaultApplVerID(boolean useDefaultApplVerID) {
         this.useDefaultApplVerID = useDefaultApplVerID;
+    }
+
+    public String getValidateUnorderedGroupFields() {
+        return validateUnorderedGroupFields;
+    }
+
+    public void setValidateUnorderedGroupFields(String validateUnorderedGroupFields) {
+        this.validateUnorderedGroupFields = convertFromBoolToYOrN("validateUnorderedGroupFields", validateUnorderedGroupFields);
     }
 
     public boolean isUseDefaultApplVerID() {
@@ -474,6 +484,7 @@ public class BaseFixBean {
                 .append(SETTING_END_DAY, endDay)
                 .append(SETTING_TIMESTAMP_PRECISION, timeStampPrecision)
                 .append(SETTING_ENABLE_NEXT_EXPECTED_MSG_SEQ_NUM, enableNextExpectedMsgSeqNum)
+                .append(SETTING_VALIDATE_UNORDERED_GROUP_FIELDS, validateUnorderedGroupFields)
                 .append("FakeResendRequest", fakeResendRequest)
                 .append("OrderingFields", orderingFields)
                 .append("Autorelogine", autorelogin)
