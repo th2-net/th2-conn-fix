@@ -87,9 +87,9 @@ public class FixMessageFactory implements MessageFactory {
     }
 
 
-    public FixMessage create(String msgType, int[] fieldOrder) {
+    public FixMessage create(String msgType,int[] bodyFieldOrder, int[] headerFieldOrder, int[] trailerFieldOrder) {
 
-        FixMessage message = new FixMessage(fieldOrder, fieldOrder, fieldOrder);
+        FixMessage message = new FixMessage(bodyFieldOrder, headerFieldOrder, trailerFieldOrder);
         message.getHeader().setString(MsgType.FIELD, msgType);
 
         return message;
