@@ -334,13 +334,16 @@ public class Main {
 
                         if (sessionSettings.getOrderingFields() != null && sessionSettings.getOrderingFields().equals(YES_SETTING)) {
                             String msgType = MessageUtils.getMessageType(strMessage);
+
                             fixMessage = messageFactory.create(msgType, dataDictionary.getMsgTypeOrderedFields(msgType),
-                                    dataDictionary.getMsgTypeOrderedFields("HEADER"), dataDictionary.getMsgTypeOrderedFields("TRAILER"));
+                                    dataDictionary.getMsgTypeOrderedFields(DataDictionary.HEADER_ID),
+                                    dataDictionary.getMsgTypeOrderedFields(DataDictionary.TRAILER_ID));
+
                             fixMessage.fromString(strMessage, sessionDataDictionary, dataDictionary, true);
                         } else {
                             fixMessage = new FixMessage(strMessage, sessionDataDictionary, dataDictionary);
                         }
-                        dataDictionary.validate(fixMessage, true);
+                        dataDictionary.validate(fixMessage, false);
 
                         if (!message.getRawMessage().getParentEventId().getId().equals("")) {
                             fixMessage.setParentEventID(message.getRawMessage().getParentEventId());
