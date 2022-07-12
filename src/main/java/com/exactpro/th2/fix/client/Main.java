@@ -335,9 +335,9 @@ public class Main {
                         if (sessionSettings.getOrderingFields() != null && sessionSettings.getOrderingFields().equals(YES_SETTING)) {
                             String msgType = MessageUtils.getMessageType(strMessage);
 
-                            fixMessage = messageFactory.create(msgType, dataDictionary.getMsgTypeOrderedFields(msgType),
-                                    dataDictionary.getMsgTypeOrderedFields(DataDictionary.HEADER_ID),
-                                    dataDictionary.getMsgTypeOrderedFields(DataDictionary.TRAILER_ID));
+                            fixMessage = messageFactory.create(msgType, dataDictionary.getMsgFieldOrder(DataDictionary.HEADER_ID),
+                                    dataDictionary.getMsgFieldOrder(msgType),
+                                    dataDictionary.getMsgFieldOrder(DataDictionary.TRAILER_ID));
 
                             fixMessage.fromString(strMessage, sessionDataDictionary, dataDictionary, true);
                         } else {
