@@ -25,7 +25,6 @@
      | HeartBtInt | 	Heartbeat interval in seconds. Only used for initiators. |	positive integer	 | 30 | 
      | LogonTimeout |	Number of seconds to wait for a logon response before disconnecting.	| positive integer |	10 |
      | LogoutTimeout |	Number of seconds to wait for a logout response before disconnecting.	| positive integer | 2 |
-     | NonStopSession	| If set the session will never reset. This is effectively the same as setting 00:00:00 as StartTime and EndTime. |	true / false|	false |
      | SocketConnectPort |	Socket port for connecting to a session. Only used with a SocketInitiator | positive integer | |	 
      | SocketConnectHost | Host to connect to. Only used with a SocketInitiator	| valid IP address in the format of x.x.x.x or a domain name	 | | 
      | SocketConnectProtocol |	Specifies the initiator communication protocol. The SocketConnectHost is not used with the VM_PIPE protocol, but the SocketConnectPort is significant and must match the acceptor configuration.	| "TCP" or "VM_PIPE". |	"TCP" |
@@ -100,13 +99,17 @@ spec:
     grpcStartControl: true
     autoStart: true
     autoStopAfter: 0
-    fileStorePath: storage/messages/
-    fileLogPath: outgoing
+    autorelogin: true
     connectionType: initiator
     reconnectInterval: 60
     heartBtInt: 30
     useDataDictionary: Y
-    nonStopSession: Y
+    resetOnLogon: true
+    startDay: monday
+    endDay: sunday
+    startTime: 00:00:00
+    endTime: 00:00:00
+    zipDictionaries: false
     sessionsSettings:
       -  
         beginString: FIXT.1.1
@@ -133,6 +136,7 @@ spec:
       attributes:
         - subscribe
         - send
+        - raw 
     - name: outgoing_messages
       connection-type: mq
       attributes:
