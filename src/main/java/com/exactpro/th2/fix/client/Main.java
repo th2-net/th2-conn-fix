@@ -343,7 +343,7 @@ public class Main {
                         } else {
                             fixMessage = new FixMessage(strMessage, sessionDataDictionary, dataDictionary);
                         }
-                        dataDictionary.validate(fixMessage, false);
+                        dataDictionary.validate(fixMessage, true);
 
                         if (!message.getRawMessage().getParentEventId().getId().equals("")) {
                             fixMessage.setParentEventID(message.getRawMessage().getParentEventId());
