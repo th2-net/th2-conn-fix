@@ -64,7 +64,7 @@ public class FixBean extends BaseFixBean {
 
 
     @JsonProperty(required = true)
-    protected String beginString = "FIX.4.2";
+    protected String beginString = null;
     @JsonProperty(required = true)
     protected String socketConnectHost = "localhost";
     @JsonProperty(required = true)
