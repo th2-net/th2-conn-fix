@@ -2,6 +2,7 @@ package com.exactpro.th2.fix.client;
 
 import com.exactpro.th2.common.grpc.ConnectionID;
 import com.exactpro.th2.common.grpc.Direction;
+import com.exactpro.th2.common.grpc.EventID;
 import com.exactpro.th2.common.grpc.RawMessage;
 import com.exactpro.th2.common.utils.event.EventBatcher;
 import com.exactpro.th2.common.utils.event.MessageBatcher;
@@ -87,8 +88,10 @@ public class LogImpl implements Log {
         RawMessage rawMessage = MessageUtil.toRawMessage(message.getBytes(), connectionID, direction, sequence.get());
         messageBatcher.onMessage(rawMessage, direction);
 
-        String parentEventID = FixMessage.getMessageParentEventId(message) == null ? parentEventId : FixMessage.getMessageParentEventId(message).getId();
-        eventBatcher.onEvent(EventUtil.toEvent(rawMessage, parentEventID, "Message successfully sent"));
+        EventID parentEventID = FixMessage.getMessageParentEventId(message);
+        if (parentEventID != null) {
+            eventBatcher.onEvent(EventUtil.toEvent(rawMessage, parentEventID.getId(), "Message successfully sent"));
+        }
     }
 
     private static Supplier<Long> createSequence() {
