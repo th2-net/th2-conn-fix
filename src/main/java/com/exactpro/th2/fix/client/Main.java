@@ -152,9 +152,7 @@ public class Main {
             connectionIDs.put(sessionId, ConnectionID.newBuilder().setSessionAlias(sessionAlias).build());
         });
 
-        Event rootEvent = MessageRouterUtils.storeEvent(eventRouter, Event.start(), null);
-        rootEvent.name("FIX client " + String.join(":", sessionIDs.keySet()) + " " + Instant.now());
-        rootEvent.type("Microservice");
+        Event rootEvent = MessageRouterUtils.storeEvent(eventRouter, createRootEvent(sessionIDs), null);
         String rootEventID = rootEvent.getId();
 
         FixClient fixClient = new FixClient(new SessionSettings(configFile.getAbsolutePath()), settings,
@@ -217,7 +215,11 @@ public class Main {
                             EventID eventID = message.getMessage().getParentEventId();
                             String parentEventID = eventID.getId().isEmpty() ? rootEventID : eventID.getId();
                             MessageID messageID = message.getMessage().getMetadata().getId();
-                            Event event = Event.start().messageID(messageID).type("Error").status(Event.Status.FAILED);
+                            Event event = Event.start().endTimestamp()
+                                    .messageID(messageID)
+                                    .type("Error")
+                                    .name("Sending error for " + sessionAlias)
+                                    .status(Event.Status.FAILED);
                             MessageRouterUtils.storeEvent(eventRouter, event, parentEventID);
                         }
                     }
@@ -266,6 +268,12 @@ public class Main {
 
         LOGGER.info("Finished running");
 
+    }
+
+    private static Event createRootEvent(Map<String, SessionID> sessionIDs) {
+        return Event.start().endTimestamp()
+                .name("FIX client " + String.join(":", sessionIDs.keySet()) + " " + Instant.now())
+                .type("Microservice");
     }
 
     public static class Settings extends BaseFixBean {
