@@ -1,9 +1,8 @@
 package com.exactpro.th2.fix.client;
 
 import com.exactpro.th2.common.grpc.ConnectionID;
-import com.exactpro.th2.common.grpc.EventBatch;
-import com.exactpro.th2.common.grpc.MessageGroupBatch;
-import com.exactpro.th2.common.schema.message.MessageRouter;
+import com.exactpro.th2.common.utils.event.EventBatcher;
+import com.exactpro.th2.common.utils.event.MessageBatcher;
 import quickfix.Log;
 import quickfix.LogFactory;
 import quickfix.SessionID;
@@ -13,25 +12,25 @@ import java.util.Objects;
 
 public class LogFactoryImpl implements LogFactory {
 
-    private final MessageRouter<MessageGroupBatch> messageRouter;
-    private final MessageRouter<EventBatch> eventBatch;
+    private final EventBatcher eventBatcher;
     private final LogFactory logFactory;
-    private final Map<SessionID, ConnectionID> connections;
-    private final String rootEventId;
+    private final Map<SessionID, ConnectionID> connectionIds;
+    private final Map<SessionID, String> sessionsEvents;
+    private final MessageBatcher messageBatcher;
 
-    public LogFactoryImpl(LogFactory logFactory, MessageRouter<MessageGroupBatch> messageRouter, MessageRouter<EventBatch> eventRouter,
-                          Map<SessionID, ConnectionID> connections, String rootEventId) {
+    public LogFactoryImpl(LogFactory logFactory, MessageBatcher messageBatcher, EventBatcher eventBatcher,
+                          Map<SessionID, String> sessionsEvents, Map<SessionID, ConnectionID> connectionIds) {
         this.logFactory = logFactory;
-        this.messageRouter = messageRouter;
-        this.eventBatch = eventRouter;
-        this.connections = connections;
-        this.rootEventId = rootEventId;
+        this.eventBatcher = eventBatcher;
+        this.connectionIds = connectionIds;
+        this.sessionsEvents = sessionsEvents;
+        this.messageBatcher = messageBatcher;
     }
 
     @Override
     public Log create(SessionID sessionID) {
-        ConnectionID connectionID = Objects.requireNonNull(connections.get(sessionID), () -> "Unknown session ID: " + sessionID);
-        return new LogImpl(logFactory.create(sessionID), messageRouter, eventBatch, connectionID, rootEventId);
+        ConnectionID connectionID = Objects.requireNonNull(connectionIds.get(sessionID), () -> "Unknown session ID: " + sessionID);
+        return new LogImpl(logFactory.create(sessionID), messageBatcher, eventBatcher, connectionID, sessionsEvents.get(sessionID));
     }
 
 }

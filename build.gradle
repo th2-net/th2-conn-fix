@@ -25,6 +25,14 @@ compileTestKotlin.kotlinOptions {
 }
 
 repositories {
+    maven {
+        url 'https://s01.oss.sonatype.org/content/repositories/snapshots/'
+    }
+
+    maven {
+        url 'https://s01.oss.sonatype.org/content/repositories/releases/'
+    }
+
     mavenCentral()
 }
 
@@ -33,6 +41,8 @@ dependencies {
     implementation 'com.exactpro.th2:common:3.31.5'
     implementation 'com.exactpro.th2:grpc-conn:0.0.1'
     implementation 'com.exactpro.sf:service-fix:3.2.1776'
+
+    implementation group: 'com.exactpro.th2', name: 'common-utils', version: '0.0.1-dev-2427721512-SNAPSHOT'
 
     implementation 'org.quickfixj:quickfixj-core:2.3.1'
     implementation 'org.quickfixj:quickfixj-messages-all:2.3.1'

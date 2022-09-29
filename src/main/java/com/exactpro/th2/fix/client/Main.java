@@ -13,6 +13,8 @@ import com.exactpro.th2.common.schema.message.MessageListener;
 import com.exactpro.th2.common.schema.message.MessageRouter;
 import com.exactpro.th2.common.schema.message.MessageRouterUtils;
 import com.exactpro.th2.common.schema.message.SubscriberMonitor;
+import com.exactpro.th2.common.utils.event.EventBatcher;
+import com.exactpro.th2.common.utils.event.MessageBatcher;
 import com.exactpro.th2.fix.client.exceptions.CreatingConfigFileException;
 import com.exactpro.th2.fix.client.fixBean.BaseFixBean;
 import com.exactpro.th2.fix.client.fixBean.FixBean;
@@ -22,6 +24,7 @@ import com.exactpro.th2.fix.client.util.MessageUtil;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import kotlin.Unit;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.slf4j.Logger;
@@ -48,10 +51,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static com.exactpro.th2.common.message.MessageUtils.toJson;
+import static com.exactpro.th2.common.schema.message.QueueAttribute.EVENT;
+import static com.exactpro.th2.common.schema.message.QueueAttribute.PUBLISH;
 
 public class Main {
 
@@ -155,8 +162,38 @@ public class Main {
         Event rootEvent = MessageRouterUtils.storeEvent(eventRouter, createRootEvent(sessionIDs), null);
         String rootEventID = rootEvent.getId();
 
-        FixClient fixClient = new FixClient(new SessionSettings(configFile.getAbsolutePath()), settings,
-                messageRouter, eventRouter, connectionIDs, rootEventID, settings.queueCapacity);
+        Map<SessionID, String> sessionsEvents = new HashMap<>();
+        sessionIDs.forEach((sessionAlias, sessionID) -> {
+            String eventName = "Fix client " + sessionAlias + " " + Instant.now();
+            Event event = MessageRouterUtils.storeEvent(eventRouter, rootEventID, eventName, "Microservice", null);
+            sessionsEvents.put(sessionID, event.getId());
+        });
+
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        resources.add(new Resources("executor", executor::shutdown));
+
+        EventBatcher eventBatcher = new EventBatcher(settings.maxBatchSize, settings.maxFlushTime, executor, eventBatch -> {
+            try {
+                eventRouter.sendAll(eventBatch, PUBLISH.getValue(), EVENT.getValue());
+            } catch (IOException e) {
+                LOGGER.error("Failed to send event batch: {}", e.getMessage());
+            }
+            return Unit.INSTANCE;
+        });
+
+        MessageBatcher messageBatcher = new MessageBatcher(settings.maxBatchSize, settings.maxFlushTime, executor, (batch, direction) -> {
+            try {
+                messageRouter.send(batch, direction.name());
+            } catch (IOException e) {
+                LOGGER.error("Failed to send message batch.", e);
+            }
+            return Unit.INSTANCE;
+        }, (e) -> {
+            throw new IllegalStateException("Failed to send messages.", e);
+        });
+
+        FixClient fixClient = new FixClient(new SessionSettings(configFile.getAbsolutePath()), settings, messageBatcher,
+                eventBatcher, connectionIDs, sessionsEvents, settings.queueCapacity);
 
         configFile.deleteOnExit();
         resources.add(new Resources("client", fixClient::stop));
@@ -281,6 +318,8 @@ public class Main {
         boolean autoStart = true;
         int autoStopAfter = 0;
         int queueCapacity = 10000;
+        Integer maxBatchSize = 100;
+        Long maxFlushTime = 1000L;
         @JsonProperty(required = true)
         List<FixBean> sessionSettings = new ArrayList<>();
         @JsonIgnore
@@ -315,6 +354,22 @@ public class Main {
                 throw new IllegalArgumentException("Queue capacity cannot be negative (value of queue capacity: " + queueCapacity + ").");
             }
             this.queueCapacity = queueCapacity;
+        }
+
+        public Integer getMaxBatchSize() {
+            return maxBatchSize;
+        }
+
+        public void setMaxBatchSize(Integer maxBatchSize) {
+            this.maxBatchSize = maxBatchSize;
+        }
+
+        public Long getMaxFlushTime() {
+            return maxFlushTime;
+        }
+
+        public void setMaxFlushTime(Long maxFlushTime) {
+            this.maxFlushTime = maxFlushTime;
         }
 
         public boolean isGrpcStartControl() {

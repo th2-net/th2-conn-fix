@@ -1,9 +1,8 @@
 package com.exactpro.th2.fix.client;
 
 import com.exactpro.th2.common.grpc.ConnectionID;
-import com.exactpro.th2.common.grpc.EventBatch;
-import com.exactpro.th2.common.grpc.MessageGroupBatch;
-import com.exactpro.th2.common.schema.message.MessageRouter;
+import com.exactpro.th2.common.utils.event.EventBatcher;
+import com.exactpro.th2.common.utils.event.MessageBatcher;
 import com.exactpro.th2.fix.client.service.ClientApplication;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +18,6 @@ import quickfix.ThreadedSocketInitiator;
 
 import java.util.Map;
 
-
 public class FixClient {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FixClient.class);
@@ -27,13 +25,12 @@ public class FixClient {
     private final ThreadedSocketInitiator initiator;
     private volatile boolean isRunning = false;
 
-
-    public FixClient(SessionSettings settings, Main.Settings sessionsSettings, MessageRouter<MessageGroupBatch> messageRouter, MessageRouter<EventBatch> eventRouter,
-                     Map<SessionID, ConnectionID> connections, String rootEventId, int queueCapacity) throws ConfigError {
+    public FixClient(SessionSettings settings, Main.Settings sessionsSettings, MessageBatcher messageBatcher, EventBatcher eventBatcher,
+                     Map<SessionID, ConnectionID> connectionIds, Map<SessionID, String> sessionEvents, int queueCapacity) throws ConfigError {
 
         ClientApplication application = new ClientApplication(sessionsSettings);
         MessageStoreFactory messageStoreFactory = new FileStoreFactory(settings);
-        LogFactory logFactory = new LogFactoryImpl(new FileLogFactory(settings), messageRouter, eventRouter, connections, rootEventId);
+        LogFactory logFactory = new LogFactoryImpl(new FileLogFactory(settings), messageBatcher, eventBatcher, sessionEvents, connectionIds);
         MessageFactory messageFactory = new FixMessageFactory();
 
         initiator = new ThreadedSocketInitiator(application, messageStoreFactory, settings, logFactory, messageFactory, queueCapacity);

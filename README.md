@@ -5,6 +5,8 @@
 - grpcStartControl - enables start/stop control via [gRPC service](https://github.com/th2-net/th2-grpc-conn/blob/master/src/main/proto/th2_grpc_conn/conn.proto#L24) (`false` by default)
 - autoStart - start service automatically (`true` by default and if `startControl` is `false`)
 - autoStopAfter - stop after N seconds if the service was started automatically prior to send (`0` by default which means disabled)
+- maxBatchSize - max size of outgoing message batch (`100` by default)
+- maxFlushTime - max message batch flush time (`1000` by default)
 - sessionsSettings - list with sessions settings for QuickFix:
 
      | Name of tag | Description | Valid Values| Default value|
@@ -72,14 +74,16 @@ apiVersion: th2.exactpro.com/v1
 kind: Th2Box
 metadata:
   name: fix-client
-spec:		
+spec:
   image-name: ghcr.io/th2-net/ghcr.io/th2-net/th2-conn-qfj-client
   image-version: 0.0.1
   custom-config:
     grpcStartControl: true
     autoStart: true
     autoStopAfter: 300
-    queueCapacity: 10000 
+    queueCapacity: 10000
+    maxBatchSize: 100
+    maxFlushTime: 1000
     fileStorePath: storage/messages/
     fileLogPath: outgoing
     connectionType: initiator
