@@ -12,11 +12,15 @@ version = release_version
 
 repositories {
     mavenCentral()
+    maven {
+        name 'Sonatype_snapshots'
+        url 'https://s01.oss.sonatype.org/content/repositories/snapshots/'
+    }
 }
 
 dependencies {
 
-    implementation 'com.exactpro.th2:common:3.23.0'
+    implementation 'com.exactpro.th2:common:3.42.1-TH2-2212-common-cannot-recover-channel-level-exceptions-3496538720-SNAPSHOT'
     implementation 'com.exactpro.th2:grpc-conn:0.0.1'
 
     implementation 'org.quickfixj:quickfixj-core:2.3.0'
